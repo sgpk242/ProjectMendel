@@ -7,7 +7,12 @@ import type { ClassifyResult, TopicSuggestion } from './types';
 /** Keeps cost and latency bounded on very long articles. */
 const MAX_CONTENT_CHARS = 12_000;
 
-const MODEL = 'llama-3.3-70b-versatile';
+// `llama-3.3-70b-versatile` (the original choice here) isn't on every Groq
+// account's model list — Groq's catalog varies by account/region and
+// changes over time. Pick a model your key actually has access to via
+// `client.models.list()`; gpt-oss-120b is the largest general-purpose
+// (non-agentic, non-audio) chat model on this project's account.
+const MODEL = 'openai/gpt-oss-120b';
 
 const SYSTEM_PROMPT = `You are a research librarian classifying web content. Given an article's title, URL, and body text, produce a JSON object with these fields:
 

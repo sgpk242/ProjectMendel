@@ -56,7 +56,7 @@ under `src/lib/pipeline/` so they can be tested and iterated independently:
 | Stage | File | What it does |
 |---|---|---|
 | Extract | `extract.ts` | Jina Reader — full text, title, description, published date |
-| Classify | `classify.ts` | Groq (`llama-3.3-70b-versatile`) — summary, topic tags, source type, author |
+| Classify | `classify.ts` | Groq (`openai/gpt-oss-120b`) — summary, topic tags, source type, author |
 | Chunk | `chunk.ts` | Pure function — paragraph-boundary splitting, ~600 tokens/chunk, overlap |
 | Embed | `embed.ts` | Cohere `embed-v4.0` — one vector per chunk, batched, plus the source-level mean |
 | Store | `store.ts` | Writes the source row, upserts topics, inserts chunks — through the caller's RLS |
