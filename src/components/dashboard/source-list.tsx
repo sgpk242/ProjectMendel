@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { DeleteSourceButton } from '@/components/source/delete-button';
 import { SOURCE_TYPE_LABELS, type IngestStatus, type SourceType } from '@/lib/constants';
 
 export type SourceListItem = {
@@ -52,10 +53,10 @@ export function SourceList({ sources }: { sources: SourceListItem[] }) {
   return (
     <ul className="flex flex-col gap-3">
       {sources.map((source) => (
-        <li key={source.id}>
+        <li key={source.id} className="relative">
           <Link
             href={`/source/${source.id}`}
-            className="block rounded-lg border border-border bg-surface p-4 transition-colors hover:border-accent/50"
+            className="block rounded-lg border border-border bg-surface p-4 pr-10 transition-colors hover:border-accent/50"
           >
             <div className="flex items-start justify-between gap-4">
               <h3 className="font-medium">{source.title || 'Untitled'}</h3>
@@ -81,6 +82,14 @@ export function SourceList({ sources }: { sources: SourceListItem[] }) {
               ))}
             </div>
           </Link>
+
+          {/* Outside the Link — a <button> nested inside an <a> is invalid
+              HTML and would also fire the navigation on every click. */}
+          <DeleteSourceButton
+            sourceId={source.id}
+            title={source.title}
+            className="absolute right-3 top-3"
+          />
         </li>
       ))}
     </ul>
