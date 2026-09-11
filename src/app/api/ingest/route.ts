@@ -1,19 +1,18 @@
 import { NextResponse } from 'next/server';
 
+import { runIngestPipeline } from '@/lib/pipeline/ingest';
 import { createClient } from '@/lib/supabase/server';
 import { canonicalizeUrl } from '@/lib/url';
 
 /**
- * POST /api/ingest — capture a URL.
+ * POST /api/ingest — capture a URL and run it through the full pipeline.
  *
- * Phase 0 stub: authenticates, validates the URL, and reports what the row
- * would look like. The pipeline itself lands in Phase 1.
- *
- * When it does, this handler should stay a thin enqueue. Fetch → extract →
- * chunk → embed → summarize runs 30–120s on a long article, which exceeds
- * Vercel's serverless limit, so the durable shape is: insert the source with
- * ingest_status 'pending', hand off to a Supabase edge function or background
- * job, and return immediately. The client polls ingest_status.
+ * Runs synchronously: fetch → extract → classify → chunk → embed → store →
+ * similarity check, then responds. Fine for local dev (no timeout) and for
+ * Vercel Pro's 300s limit on realistic article lengths. If ingest volume or
+ * article length grows past that, this should become a thin enqueue —
+ * insert as `pending` and hand off to a background job — polling
+ * `ingest_status` instead of blocking the request.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -32,10 +31,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Expected a JSON body' }, { status: 400 });
   }
 
-  const url = (body as { url?: unknown })?.url;
+  const { url, interestRating, userNote } = body as {
+    url?: unknown;
+    interestRating?: unknown;
+    userNote?: unknown;
+  };
+
   if (typeof url !== 'string' || url.length === 0) {
     return NextResponse.json({ error: 'Field "url" is required' }, { status: 400 });
   }
+
+  const rating =
+    typeof interestRating === 'number' && interestRating >= 1 && interestRating <= 5
+      ? Math.round(interestRating)
+      : null;
+  const note = typeof userNote === 'string' && userNote.trim() ? userNote.trim() : null;
 
   let urlCanonical: string;
   try {
@@ -44,11 +54,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Not a valid http(s) URL' }, { status: 400 });
   }
 
-  return NextResponse.json(
-    {
-      error: 'Ingest pipeline is not implemented yet.',
-      received: { url, urlCanonical },
-    },
-    { status: 501 },
-  );
+  const { data: existing } = await supabase
+    .from('sources')
+    .select('id, title, ingest_status')
+    .eq('url_canonical', urlCanonical)
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json(
+      {
+        error: 'This URL has already been captured',
+        existingSource: existing,
+      },
+      { status: 409 },
+    );
+  }
+
+  const { data: source, error: insertError } = await supabase
+    .from('sources')
+    .insert({
+      user_id: user.id,
+      url,
+      url_canonical: urlCanonical,
+      interest_rating: rating,
+      user_note: note,
+      ingest_status: 'pending',
+    })
+    .select('id')
+    .single();
+
+  if (insertError) {
+    // 23505 = unique_violation — lost a race against another capture of the same URL.
+    if (insertError.code === '23505') {
+      return NextResponse.json({ error: 'This URL has already been captured' }, { status: 409 });
+    }
+    return NextResponse.json(
+      { error: `Failed to create source: ${insertError.message}` },
+      { status: 500 },
+    );
+  }
+
+  try {
+    const result = await runIngestPipeline(supabase, user.id, source.id, url);
+    return NextResponse.json(result, { status: 201 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message, sourceId: source.id }, { status: 500 });
+  }
 }

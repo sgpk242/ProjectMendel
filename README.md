@@ -4,7 +4,8 @@ Personal research intelligence. Capture URLs, ingest their full content, organiz
 them in a searchable dashboard, and interrogate the corpus through an LLM chat
 interface grounded in what you have read.
 
-**Status: Phase 0** — scaffolding, schema, and auth. Ingest and chat are stubs.
+**Status: Phase 1** — ingest pipeline is live: paste a URL, get a classified,
+chunked, embedded, dedup-checked source. Chat is still a stub.
 
 ## Stack
 
@@ -45,6 +46,30 @@ npm run dev
 Sign up at `/`. Supabase enables email confirmation by default, so either click
 the link in the confirmation email or turn confirmations off under
 **Authentication → Sign In / Providers** for local development.
+
+## Ingest pipeline
+
+`/api/ingest` runs a URL through six discrete stages, each its own module
+under `src/lib/pipeline/` so they can be tested and iterated independently:
+
+| Stage | File | What it does |
+|---|---|---|
+| Extract | `extract.ts` | Jina Reader — full text, title, description, published date |
+| Classify | `classify.ts` | Claude (`claude-sonnet-5`) — summary, topic tags, source type, author |
+| Chunk | `chunk.ts` | Pure function — paragraph-boundary splitting, ~600 tokens/chunk, overlap |
+| Embed | `embed.ts` | Cohere `embed-v4.0` — one vector per chunk, batched, plus the source-level mean |
+| Store | `store.ts` | Writes the source row, upserts topics, inserts chunks — through the caller's RLS |
+| Similarity | `similarity.ts` | `match_sources` RPC — flags ≥0.95 cosine similarity as a duplicate, ≥0.75 as related |
+
+`ingest.ts` orchestrates the stages and advances `sources.ingest_status` at
+each transition, so a failure partway through is visible on the row (`ingest_error`)
+rather than silent. The route runs the whole pipeline synchronously before
+responding — fine for local dev and for Vercel Pro's 300s limit at realistic
+article lengths; if that stops being true, the route becomes a thin enqueue
+against a background job, using the same `ingest_status` state machine.
+
+Requires `JINA_API_KEY`, `ANTHROPIC_API_KEY`, and `COHERE_API_KEY` in
+`.env.local`.
 
 ## Scripts
 
@@ -101,9 +126,6 @@ caller's RLS applies, and neither returns embedding columns.
 ## Roadmap
 
 - **Phase 0** — scaffolding, schema, auth. ✅
-- **Phase 1** — ingest pipeline: fetch, extract, chunk, embed, summarize.
-  `/api/ingest` stays a thin enqueue; the work belongs in a Supabase edge
-  function or background job, since a long article exceeds Vercel's serverless
-  timeout.
+- **Phase 1** — ingest pipeline: fetch, extract, chunk, embed, classify, dedup. ✅
 - **Phase 2** — RAG chat with citations, hybrid keyword + vector retrieval.
 - **Phase 3** — topics, collections, similarity and contradiction detection.
