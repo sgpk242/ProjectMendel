@@ -6,9 +6,10 @@
  * live project. Regenerate rather than hand-edit after any schema change.
  *
  * Two things the generator does that are worth knowing:
- *  - `vector(1024)` columns surface as `string` (PostgREST serializes them as a
- *    JSON-array literal). Use the Embedding alias below and serialize at the
- *    write boundary rather than passing a number[] straight through.
+ *  - `vector(1024)` columns surface as plain `string` (PostgREST serializes
+ *    them as a JSON-array literal). `src/lib/embedding.ts` — not this file,
+ *    since codegen would drop it — has the `toVector`/`fromVector` helpers
+ *    that convert at the insert/read boundary.
  *  - Generated columns (`sources.fts`) are readable but never writable, so they
  *    appear in Row and are absent from Insert/Update.
  */
@@ -20,22 +21,6 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[];
-
-/**
- * A pgvector value as it crosses the wire: the text form of a JSON array, e.g.
- * "[0.1,0.2,...]". `toVector` below produces it from a number[].
- */
-export type Embedding = string;
-
-/** Serialize an embedding for insert/update into a `vector(1024)` column. */
-export function toVector(values: number[]): Embedding {
-  return JSON.stringify(values);
-}
-
-/** Parse a `vector` value read back from the database. */
-export function fromVector(value: Embedding): number[] {
-  return JSON.parse(value) as number[];
-}
 
 export type Database = {
   public: {
@@ -64,7 +49,7 @@ export type Database = {
           ingest_status: Database['public']['Enums']['ingest_status'];
           ingest_error: string | null;
           ingest_attempts: number;
-          source_embedding: Embedding | null;
+          source_embedding: string | null;
           embedding_model: string | null;
           /** Generated column — readable, never writable. */
           fts: unknown | null;
@@ -92,7 +77,7 @@ export type Database = {
           ingest_status?: Database['public']['Enums']['ingest_status'];
           ingest_error?: string | null;
           ingest_attempts?: number;
-          source_embedding?: Embedding | null;
+          source_embedding?: string | null;
           embedding_model?: string | null;
         };
         Update: {
@@ -118,7 +103,7 @@ export type Database = {
           ingest_status?: Database['public']['Enums']['ingest_status'];
           ingest_error?: string | null;
           ingest_attempts?: number;
-          source_embedding?: Embedding | null;
+          source_embedding?: string | null;
           embedding_model?: string | null;
         };
         Relationships: [];
@@ -175,7 +160,7 @@ export type Database = {
           start_char: number | null;
           end_char: number | null;
           token_count: number | null;
-          embedding: Embedding;
+          embedding: string;
           embedding_model: string;
         };
         Insert: {
@@ -187,7 +172,7 @@ export type Database = {
           start_char?: number | null;
           end_char?: number | null;
           token_count?: number | null;
-          embedding: Embedding;
+          embedding: string;
           embedding_model?: string;
         };
         Update: {
@@ -199,7 +184,7 @@ export type Database = {
           start_char?: number | null;
           end_char?: number | null;
           token_count?: number | null;
-          embedding?: Embedding;
+          embedding?: string;
           embedding_model?: string;
         };
         Relationships: [];
@@ -286,7 +271,7 @@ export type Database = {
     Functions: {
       match_chunks: {
         Args: {
-          query_embedding: Embedding;
+          query_embedding: string;
           match_count?: number;
           filter_source_ids?: string[] | null;
         };
@@ -302,7 +287,7 @@ export type Database = {
       };
       match_sources: {
         Args: {
-          query_embedding: Embedding;
+          query_embedding: string;
           match_count?: number;
           exclude_source_id?: string | null;
         };

@@ -1,7 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { EMBEDDING_MODEL } from '@/lib/constants';
-import { toVector, type Database } from '@/lib/types/database';
+import { toVector } from '@/lib/embedding';
+import type { Database } from '@/lib/types/database';
 
 import type { ChunkData, ClassifyResult, ExtractResult } from './types';
 
