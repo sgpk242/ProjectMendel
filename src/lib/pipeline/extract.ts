@@ -23,25 +23,23 @@ type JinaResponse = {
  * metadata it could find. It does not reliably surface an author — that's
  * left to `classify()`, which reads the byline out of the body text.
  *
- * Uses the JSON POST form (`{ url }` in the body) rather than appending the
- * target URL to the path (`https://r.jina.ai/<url>`) — concatenating a
- * percent-encoded URL there mangles the `://` and `/` Jina needs to parse
- * out the target, which silently degrades to a 200 with no content instead
- * of an error.
+ * GET with the target URL appended to the path, unencoded — the form Jina
+ * documents and the one confirmed working directly against pages a JSON
+ * POST body came back empty for (`X-Return-Format: text` or the POST path
+ * itself apparently skip whatever rendering step some pages need; GET with
+ * no format override does not). The earlier `encodeURIComponent(url)`
+ * version was a separate, now-fixed bug — percent-encoding the target
+ * mangled the `://` Jina needs to parse it out at all.
  */
 export async function extract(url: string): Promise<ExtractResult> {
   const apiKey = process.env.JINA_API_KEY;
   if (!apiKey) throw new Error('JINA_API_KEY is not set');
 
-  const response = await fetch('https://r.jina.ai/', {
-    method: 'POST',
+  const response = await fetch(`https://r.jina.ai/${url}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-Return-Format': 'text',
     },
-    body: JSON.stringify({ url }),
   });
 
   if (!response.ok) {
