@@ -298,6 +298,43 @@ export type Database = {
           similarity: number;
         }[];
       };
+      search_sources: {
+        Args: {
+          search_query?: string | null;
+          filter_types?: Database['public']['Enums']['source_type'][] | null;
+          filter_statuses?: Database['public']['Enums']['source_status'][] | null;
+          filter_topic_ids?: string[] | null;
+          filter_rating_min?: number | null;
+          filter_rating_max?: number | null;
+          filter_reading_min?: number | null;
+          filter_reading_max?: number | null;
+          filter_date_from?: string | null;
+          filter_date_to?: string | null;
+          sort_by?: string;
+          sort_asc?: boolean;
+          page_limit?: number;
+          page_offset?: number;
+        };
+        Returns: {
+          id: string;
+          title: string | null;
+          url: string;
+          author: string | null;
+          publication: string | null;
+          published_date: string | null;
+          captured_at: string;
+          summary: string | null;
+          source_type: Database['public']['Enums']['source_type'];
+          status: Database['public']['Enums']['source_status'];
+          ingest_status: Database['public']['Enums']['ingest_status'];
+          interest_rating: number | null;
+          word_count: number | null;
+          reading_time_minutes: number | null;
+          user_note: string | null;
+          rank: number;
+          total_count: number;
+        }[];
+      };
     };
 
     Enums: {
@@ -345,3 +382,4 @@ export type SourceSimilarity = Tables<'source_similarities'>;
 
 export type MatchedChunk = PublicSchema['Functions']['match_chunks']['Returns'][number];
 export type MatchedSource = PublicSchema['Functions']['match_sources']['Returns'][number];
+export type SearchedSource = PublicSchema['Functions']['search_sources']['Returns'][number];
