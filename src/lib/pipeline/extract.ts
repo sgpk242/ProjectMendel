@@ -22,17 +22,26 @@ type JinaResponse = {
  * Jina strips nav/ads/boilerplate and returns clean text plus whatever
  * metadata it could find. It does not reliably surface an author — that's
  * left to `classify()`, which reads the byline out of the body text.
+ *
+ * Uses the JSON POST form (`{ url }` in the body) rather than appending the
+ * target URL to the path (`https://r.jina.ai/<url>`) — concatenating a
+ * percent-encoded URL there mangles the `://` and `/` Jina needs to parse
+ * out the target, which silently degrades to a 200 with no content instead
+ * of an error.
  */
 export async function extract(url: string): Promise<ExtractResult> {
   const apiKey = process.env.JINA_API_KEY;
   if (!apiKey) throw new Error('JINA_API_KEY is not set');
 
-  const response = await fetch(`https://r.jina.ai/${encodeURIComponent(url)}`, {
+  const response = await fetch('https://r.jina.ai/', {
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept: 'application/json',
+      'Content-Type': 'application/json',
       'X-Return-Format': 'text',
     },
+    body: JSON.stringify({ url }),
   });
 
   if (!response.ok) {
@@ -47,7 +56,11 @@ export async function extract(url: string): Promise<ExtractResult> {
 
   const content = body.data.content?.trim();
   if (!content) {
-    throw new Error('Jina Reader returned no extractable content for this URL');
+    // A 200 with no content usually means the target itself had nothing
+    // extractable — a paywall/bot-check interstitial rather than the
+    // article, most often. The title, if present, is the best clue.
+    const titleHint = body.data.title ? ` (page title was "${body.data.title}")` : '';
+    throw new Error(`Jina Reader returned no extractable content for this URL${titleHint}`);
   }
 
   const wordCount = content.split(/\s+/).filter(Boolean).length;
