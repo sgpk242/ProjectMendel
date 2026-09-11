@@ -1,11 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk';
+import Groq from 'groq-sdk';
 
 import { SOURCE_TYPES, type SourceType } from '@/lib/constants';
 
 import type { ClassifyResult, TopicSuggestion } from './types';
 
-/** Keeps cost and latency bounded on very long articles (~$0.01/article at Sonnet pricing). */
+/** Keeps cost and latency bounded on very long articles. */
 const MAX_CONTENT_CHARS = 12_000;
+
+const MODEL = 'llama-3.3-70b-versatile';
 
 const SYSTEM_PROMPT = `You are a research librarian classifying web content. Given an article's title, URL, and body text, produce a JSON object with these fields:
 
@@ -26,7 +28,7 @@ type RawClassification = {
 };
 
 /**
- * Summarize and classify article content with Claude.
+ * Summarize and classify article content with Groq (Llama 3.3 70B).
  *
  * Truncates to the first `MAX_CONTENT_CHARS` — plenty for a summary and
  * topic tags, and keeps cost/latency predictable on long-form pieces.
@@ -36,14 +38,15 @@ export async function classify(
   content: string,
   url: string,
 ): Promise<ClassifyResult> {
-  const client = new Anthropic();
+  const client = new Groq();
   const truncated = content.slice(0, MAX_CONTENT_CHARS);
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-5',
+  const response = await client.chat.completions.create({
+    model: MODEL,
     max_tokens: 1024,
-    system: SYSTEM_PROMPT,
+    temperature: 0,
     messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
         content: `Title: ${title ?? '(unknown)'}\nURL: ${url}\n\n${truncated}`,
@@ -51,12 +54,10 @@ export async function classify(
     ],
   });
 
-  const textBlock = response.content.find(
-    (block): block is Anthropic.TextBlock => block.type === 'text',
-  );
-  if (!textBlock) throw new Error('Claude returned no text content for classification');
+  const text = response.choices[0]?.message?.content;
+  if (!text) throw new Error('Groq returned no text content for classification');
 
-  const parsed = parseClassification(textBlock.text);
+  const parsed = parseClassification(text);
   return normalize(parsed);
 }
 

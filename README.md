@@ -55,7 +55,7 @@ under `src/lib/pipeline/` so they can be tested and iterated independently:
 | Stage | File | What it does |
 |---|---|---|
 | Extract | `extract.ts` | Jina Reader — full text, title, description, published date |
-| Classify | `classify.ts` | Claude (`claude-sonnet-5`) — summary, topic tags, source type, author |
+| Classify | `classify.ts` | Groq (`llama-3.3-70b-versatile`) — summary, topic tags, source type, author |
 | Chunk | `chunk.ts` | Pure function — paragraph-boundary splitting, ~600 tokens/chunk, overlap |
 | Embed | `embed.ts` | Cohere `embed-v4.0` — one vector per chunk, batched, plus the source-level mean |
 | Store | `store.ts` | Writes the source row, upserts topics, inserts chunks — through the caller's RLS |
@@ -68,7 +68,7 @@ responding — fine for local dev and for Vercel Pro's 300s limit at realistic
 article lengths; if that stops being true, the route becomes a thin enqueue
 against a background job, using the same `ingest_status` state machine.
 
-Requires `JINA_API_KEY`, `ANTHROPIC_API_KEY`, and `COHERE_API_KEY` in
+Requires `JINA_API_KEY`, `GROQ_API_KEY`, and `COHERE_API_KEY` in
 `.env.local`.
 
 ## Scripts
