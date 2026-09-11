@@ -25,7 +25,7 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 
   const filters = parseSearchParams(toURLSearchParams(await searchParams));
 
-  const [{ sources, totalCount }, topics] = await Promise.all([
+  const [{ sources, totalCount, error }, topics] = await Promise.all([
     searchSources(supabase, filters),
     loadTopics(supabase),
   ]);
@@ -43,33 +43,44 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
         <FilterChips topics={topics} />
       </div>
 
-      <div className="mt-6 flex flex-col gap-6 md:flex-row">
-        <FilterSidebar topics={topics} />
+      {error ? (
+        <div className="mt-6 rounded-md border border-red-700/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          <p className="font-medium">Couldn&apos;t load sources</p>
+          <p className="mt-1 text-red-300/80">{error}</p>
+          <p className="mt-1 text-red-300/80">
+            If this mentions <code>search_sources</code>, the database migration that adds it
+            hasn&apos;t been applied yet — run <code>npm run db:push</code>.
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 flex flex-col gap-6 md:flex-row">
+          <FilterSidebar topics={topics} />
 
-        <div className="min-w-0 flex-1">
-          {sources.length > 0 ? (
-            <SourceList sources={sources} />
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-20 text-center">
-              {hasActiveFilters(filters) ? (
-                <>
-                  <p className="text-muted">No sources match these filters.</p>
-                  <p className="mt-1 text-muted">Try clearing a filter or search term.</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-muted">No sources yet.</p>
-                  <p className="mt-1 text-muted">Capture your first URL to get started.</p>
-                </>
-              )}
+          <div className="min-w-0 flex-1">
+            {sources.length > 0 ? (
+              <SourceList sources={sources} />
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-20 text-center">
+                {hasActiveFilters(filters) ? (
+                  <>
+                    <p className="text-muted">No sources match these filters.</p>
+                    <p className="mt-1 text-muted">Try clearing a filter or search term.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted">No sources yet.</p>
+                    <p className="mt-1 text-muted">Capture your first URL to get started.</p>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="mt-8">
+              <Pagination filters={filters} totalCount={totalCount} />
             </div>
-          )}
-
-          <div className="mt-8">
-            <Pagination filters={filters} totalCount={totalCount} />
           </div>
         </div>
-      </div>
+      )}
     </PageShell>
   );
 }
@@ -81,15 +92,24 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
  * rather than nested selects, for the same reason the old dashboard did:
  * the hand-written `Database` type declares no `Relationships`, so
  * PostgREST embedded-select type inference isn't available here.
+ *
+ * An RPC failure (most commonly: migration 004 hasn't been applied yet, so
+ * the function doesn't exist) is returned as `error` rather than folded
+ * into an empty result — those two cases look identical to a user ("no
+ * sources") but mean very different things, and conflating them is exactly
+ * what made a real failure here hard to diagnose from the outside.
  */
 async function searchSources(
   supabase: Supabase,
   filters: DashboardFilters,
-): Promise<{ sources: SourceListItem[]; totalCount: number }> {
+): Promise<{ sources: SourceListItem[]; totalCount: number; error: string | null }> {
   const { data, error } = await supabase.rpc('search_sources', toRpcArgs(filters));
 
-  if (error || !data || data.length === 0) {
-    return { sources: [], totalCount: 0 };
+  if (error) {
+    return { sources: [], totalCount: 0, error: error.message };
+  }
+  if (!data || data.length === 0) {
+    return { sources: [], totalCount: 0, error: null };
   }
 
   const totalCount = data[0]?.total_count ?? 0;
@@ -102,6 +122,7 @@ async function searchSources(
 
   return {
     totalCount,
+    error: null,
     sources: data.map((s) => ({
       id: s.id,
       title: s.title,
