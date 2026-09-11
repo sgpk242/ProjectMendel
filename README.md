@@ -159,3 +159,14 @@ caller's RLS applies, and neither returns embedding columns.
   rich source detail view. ✅
 - **Phase 3** — RAG chat with citations, hybrid keyword + vector retrieval.
 - **Phase 4** — contradiction detection, deeper collection tooling.
+
+### Backlog (not yet scoped or scheduled)
+
+Ideas captured for later — each would likely be its own dashboard tile:
+
+- **Funding opportunities tracker** — history of funding opportunities (e.g.
+  DOE chemicals grants): what's open, deadlines, past awards.
+- **Product idea radar** — candidate future biomanufacturing products, the
+  papers behind them, and who's actively working on them.
+- **Weekly new-papers feed** — a recurring pull of newly published papers for
+  review, to triage into the main source library.
