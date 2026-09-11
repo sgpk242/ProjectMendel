@@ -4,8 +4,9 @@ Personal research intelligence. Capture URLs, ingest their full content, organiz
 them in a searchable dashboard, and interrogate the corpus through an LLM chat
 interface grounded in what you have read.
 
-**Status: Phase 1** — ingest pipeline is live: paste a URL, get a classified,
-chunked, embedded, dedup-checked source. Chat is still a stub.
+**Status: Phase 2** — ingest pipeline (paste a URL, get a classified, chunked,
+embedded, dedup-checked source), plus a searchable/filterable dashboard, quick
+actions, collections, and a rich source detail view. Chat is still a stub.
 
 ## Stack
 
@@ -71,6 +72,33 @@ against a background job, using the same `ingest_status` state machine.
 Requires `JINA_API_KEY`, `GROQ_API_KEY`, and `COHERE_API_KEY` in
 `.env.local`.
 
+## Dashboard search & filtering
+
+`/dashboard` is backed by one RPC, `search_sources`
+(`supabase/migrations/004_search_sources_rpc.sql`), which handles ranked
+full-text search, every facet filter, sorting, and pagination in a single
+round trip:
+
+- **Search** runs `websearch_to_tsquery` against the existing `sources.fts`
+  column (weighted title > summary > note > body) and ranks with
+  `ts_rank_cd`, so title matches surface first. A source whose *topic name*
+  matches the query but whose text doesn't is still returned, at a lower
+  fixed rank — covering "I know I tagged something EPA-related" as well as
+  "I know the word EPA is somewhere in it".
+- **Filters** — source type, reading status, topic, interest-rating range,
+  reading-time bucket, and date range — all compose as SQL predicates in the
+  same query, and are encoded in the URL (`src/lib/search-params.ts`) so a
+  filtered view is shareable/bookmarkable and survives a refresh.
+- **Pagination** is offset-based, 30 per page, using a window-function
+  `total_count` from the same query rather than a second round trip.
+
+Every source card carries inline quick actions — reading status, interest
+rating, note, and collection membership — that PATCH `/api/source/[id]` (or
+POST/DELETE the collections endpoints) and refresh in place; the same
+controls appear, enlarged, on the source detail page alongside topic
+relevance scores, similar sources (from `source_similarities`), and
+collection memberships.
+
 ## Scripts
 
 | Script | Purpose |
@@ -127,5 +155,7 @@ caller's RLS applies, and neither returns embedding columns.
 
 - **Phase 0** — scaffolding, schema, auth. ✅
 - **Phase 1** — ingest pipeline: fetch, extract, chunk, embed, classify, dedup. ✅
-- **Phase 2** — RAG chat with citations, hybrid keyword + vector retrieval.
-- **Phase 3** — topics, collections, similarity and contradiction detection.
+- **Phase 2** — dashboard search/filtering, quick actions, collections CRUD,
+  rich source detail view. ✅
+- **Phase 3** — RAG chat with citations, hybrid keyword + vector retrieval.
+- **Phase 4** — contradiction detection, deeper collection tooling.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 const DEBOUNCE_MS = 300;
@@ -15,14 +15,21 @@ export function SearchBar() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [value, setValue] = useState(searchParams.get('q') ?? '');
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const urlValue = searchParams.get('q') ?? '';
+  const [value, setValue] = useState(urlValue);
 
   // Keep the input in sync when the URL changes some other way (a filter
   // chip removed, browser back/forward) without fighting the user's typing.
-  useEffect(() => {
-    setValue(searchParams.get('q') ?? '');
-  }, [searchParams]);
+  // Adjusted during render rather than in an effect — React's documented
+  // pattern for deriving state from a prop that changed, and it avoids an
+  // extra render pass versus a useEffect doing the same setValue.
+  const [prevUrlValue, setPrevUrlValue] = useState(urlValue);
+  if (urlValue !== prevUrlValue) {
+    setPrevUrlValue(urlValue);
+    setValue(urlValue);
+  }
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function commit(next: string) {
     const params = new URLSearchParams(searchParams.toString());

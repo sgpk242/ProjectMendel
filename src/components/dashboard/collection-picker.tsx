@@ -21,7 +21,6 @@ export function CollectionPicker({
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [collections, setCollections] = useState<Collection[] | null>(null);
   const [memberIds, setMemberIds] = useState(new Set(initialCollectionIds));
   const [newName, setNewName] = useState('');
@@ -29,14 +28,28 @@ export function CollectionPicker({
   const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Derived rather than its own state — the effect below only ever sets
+  // `collections` (and `error` on failure), so "still loading" is exactly
+  // "open, no data yet, and no failure to show instead".
+  const loading = open && collections === null && !error;
+
   useEffect(() => {
     if (!open || collections !== null) return;
-    setLoading(true);
+    let cancelled = false;
     fetch('/api/collections')
       .then((r) => r.json())
-      .then((body: { collections?: Collection[] }) => setCollections(body.collections ?? []))
-      .catch(() => setError('Failed to load collections'))
-      .finally(() => setLoading(false));
+      .then((body: { collections?: Collection[] }) => {
+        if (!cancelled) {
+          setCollections(body.collections ?? []);
+          setError(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setError('Failed to load collections');
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [open, collections]);
 
   useEffect(() => {
