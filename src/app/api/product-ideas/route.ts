@@ -28,7 +28,9 @@ export async function GET(request: Request) {
     .order('created_at', { ascending: false });
 
   if (ratedOnly) {
-    query = query.not('interest_rating', 'is', null);
+    // 0 is "de-listed" — excluded from "rated" the same as null ("never
+    // rated"), since both mean "not currently interesting."
+    query = query.not('interest_rating', 'is', null).gt('interest_rating', 0);
   }
 
   const { data, error } = await query;

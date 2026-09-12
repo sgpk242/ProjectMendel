@@ -230,7 +230,10 @@ async function loadRatedProductIdeas(supabase: Supabase): Promise<RatedProductId
   const { data } = await supabase
     .from('product_ideas')
     .select('id, name, description, interest_rating, source_product_ideas(source_id)')
+    // 0 is "de-listed" (set via the product page's De-list button) —
+    // excluded the same as null ("never rated").
     .not('interest_rating', 'is', null)
+    .gt('interest_rating', 0)
     .order('interest_rating', { ascending: false })
     .limit(10);
 

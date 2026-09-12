@@ -36,13 +36,15 @@ export async function PATCH(
     } else if (
       typeof interest_rating === 'number' &&
       Number.isInteger(interest_rating) &&
-      interest_rating >= 1 &&
+      // 0 is a valid rating here — it's the "de-listed" sentinel set by the
+      // product page's De-list button, distinct from null ("never rated").
+      interest_rating >= 0 &&
       interest_rating <= 5
     ) {
       updates.interest_rating = interest_rating;
     } else {
       return NextResponse.json(
-        { error: 'interest_rating must be an integer 1-5 or null' },
+        { error: 'interest_rating must be an integer 0-5 or null' },
         { status: 400 },
       );
     }

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { DelistButton } from '@/components/product/delist-button';
 import { ProductNoteEditor } from '@/components/product/product-note-editor';
 import { PageShell } from '@/components/ui/page-shell';
 import { createClient } from '@/lib/supabase/server';
@@ -37,8 +38,13 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
 
   return (
     <PageShell email={user?.email}>
-      <h1 className="text-2xl font-semibold tracking-tight">Product Details</h1>
-      <p className="mt-1 text-lg text-foreground">{product.name}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight">Product Details</h1>
+          <p className="mt-1 text-lg text-foreground">{product.name}</p>
+        </div>
+        <DelistButton productId={product.id} />
+      </div>
 
       <div className="mt-6">
         <h2 className="text-sm font-semibold tracking-tight text-muted">
