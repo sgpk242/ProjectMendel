@@ -2,7 +2,7 @@ import Groq from 'groq-sdk';
 
 import { SOURCE_TYPES, type SourceType } from '@/lib/constants';
 
-import type { ClassifyResult, TopicSuggestion } from './types';
+import type { ClassifyResult, CompoundSuggestion, TopicSuggestion } from './types';
 
 /** Keeps cost and latency bounded on very long articles. */
 const MAX_CONTENT_CHARS = 12_000;
@@ -21,6 +21,7 @@ const SYSTEM_PROMPT = `You are a research librarian classifying web content. Giv
 - "sourceType": One of: "article", "paper", "blog", "linkedin_post", "report", "press_release", "other".
 - "publication": The outlet name if identifiable (e.g. "Nature", "MIT Technology Review"). null if unclear.
 - "author": The author's name if identifiable from byline or content. null if unclear.
+- "compounds": Array of 0-5 potential biomanufacturing chemical compounds or products mentioned. Each: { "name": "Compound Name", "description": "Brief description of what it is and its biomanufacturing relevance", "context": "Brief quote or paraphrase where this compound is mentioned", "relevanceScore": 0.0-1.0 }. Only include compounds that could realistically be produced through biological manufacturing (fermentation, enzymatic synthesis, metabolic engineering, etc.). Return an empty array if none are relevant.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary.`;
 
@@ -30,6 +31,7 @@ type RawClassification = {
   sourceType?: unknown;
   publication?: unknown;
   author?: unknown;
+  compounds?: unknown;
 };
 
 /**
@@ -110,7 +112,22 @@ function normalize(raw: RawClassification): ClassifyResult {
 
   const author = typeof raw.author === 'string' && raw.author.trim() ? raw.author.trim() : null;
 
-  return { summary, topics, sourceType, publication, author };
+  const compounds: CompoundSuggestion[] = Array.isArray(raw.compounds)
+    ? raw.compounds
+        .filter(
+          (c): c is { name: unknown; description: unknown; context: unknown; relevanceScore: unknown } =>
+            typeof c === 'object' && c !== null,
+        )
+        .map((c) => ({
+          name: typeof c.name === 'string' ? c.name.trim() : '',
+          description: typeof c.description === 'string' ? c.description.trim() : '',
+          context: typeof c.context === 'string' ? c.context.trim() : '',
+          relevanceScore: clamp01(typeof c.relevanceScore === 'number' ? c.relevanceScore : 0.5),
+        }))
+        .filter((c) => c.name.length > 0)
+    : [];
+
+  return { summary, topics, sourceType, publication, author, compounds };
 }
 
 function clamp01(value: number): number {

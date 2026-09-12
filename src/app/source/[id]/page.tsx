@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { CollectionMemberships, type Membership } from '@/components/source/collection-memberships';
+import { CompoundList, type CompoundItem } from '@/components/source/compound-list';
 import { DeleteSourceButton } from '@/components/source/delete-button';
 import { MetadataPanel } from '@/components/source/metadata-panel';
 import { NoteEditor } from '@/components/source/note-editor';
@@ -41,8 +42,9 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
     );
   }
 
-  const [topics, similarSources, memberships] = await Promise.all([
+  const [topics, compounds, similarSources, memberships] = await Promise.all([
     loadTopics(supabase, id),
+    loadProductIdeas(supabase, id),
     loadSimilarSources(supabase, id),
     loadCollectionMemberships(supabase, id),
   ]);
@@ -118,6 +120,17 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
           <h2 className="text-sm font-semibold tracking-tight text-muted">Topics</h2>
           <div className="mt-2">
             <TopicList topics={topics} />
+          </div>
+        </div>
+      ) : null}
+
+      {compounds.length > 0 ? (
+        <div className="mt-6">
+          <h2 className="text-sm font-semibold tracking-tight text-muted">
+            Biomanufacturing Compounds
+          </h2>
+          <div className="mt-2">
+            <CompoundList compounds={compounds} />
           </div>
         </div>
       ) : null}
@@ -236,4 +249,41 @@ async function loadCollectionMemberships(
     .in('id', collectionIds);
 
   return (collections ?? []).map((c) => ({ id: c.id, name: c.name }));
+}
+
+/** Product ideas (compounds) linked to this source via source_product_ideas. */
+async function loadProductIdeas(
+  supabase: Supabase,
+  sourceId: string,
+): Promise<CompoundItem[]> {
+  const { data: links } = await supabase
+    .from('source_product_ideas')
+    .select('product_idea_id, context, relevance_score')
+    .eq('source_id', sourceId);
+
+  if (!links || links.length === 0) return [];
+
+  const ideaIds = links.map((l) => l.product_idea_id);
+  const { data: ideas } = await supabase
+    .from('product_ideas')
+    .select('id, name, description, interest_rating')
+    .in('id', ideaIds);
+
+  const ideaById = new Map((ideas ?? []).map((i) => [i.id, i]));
+
+  const compounds: CompoundItem[] = [];
+  for (const link of links) {
+    const idea = ideaById.get(link.product_idea_id);
+    if (!idea) continue;
+    compounds.push({
+      id: idea.id,
+      name: idea.name,
+      description: idea.description,
+      context: link.context,
+      relevanceScore: link.relevance_score,
+      interestRating: idea.interest_rating,
+    });
+  }
+
+  return compounds.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
 }

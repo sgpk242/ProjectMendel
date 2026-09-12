@@ -27,13 +27,22 @@ export type TopicSuggestion = {
   relevanceScore: number;
 };
 
-/** Output of `classify()` — Claude's read of the article. */
+/** A biomanufacturing compound or product extracted during classification. */
+export type CompoundSuggestion = {
+  name: string;
+  description: string;
+  context: string;
+  relevanceScore: number;
+};
+
+/** Output of `classify()` — the LLM's read of the article. */
 export type ClassifyResult = {
   summary: string;
   topics: TopicSuggestion[];
   sourceType: SourceType;
   publication: string | null;
   author: string | null;
+  compounds: CompoundSuggestion[];
 };
 
 /** A single chunk produced by `chunk()`, with offsets into the source text. */
@@ -67,6 +76,7 @@ export type IngestResult = {
   summary: string;
   sourceType: SourceType;
   topics: TopicSuggestion[];
+  compounds: CompoundSuggestion[];
   wordCount: number;
   readingTimeMinutes: number;
   chunkCount: number;

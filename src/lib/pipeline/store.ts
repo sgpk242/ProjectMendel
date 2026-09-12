@@ -4,7 +4,7 @@ import { EMBEDDING_MODEL } from '@/lib/constants';
 import { toVector } from '@/lib/embedding';
 import type { Database } from '@/lib/types/database';
 
-import type { ChunkData, ClassifyResult, ExtractResult } from './types';
+import type { ChunkData, ClassifyResult, CompoundSuggestion, ExtractResult } from './types';
 
 type StoreInput = {
   extract: ExtractResult;
@@ -50,6 +50,7 @@ export async function store(
   if (sourceError) throw new Error(`Failed to update source: ${sourceError.message}`);
 
   const topicIds = await upsertTopics(supabase, userId, sourceId, classify.topics);
+  await upsertProductIdeas(supabase, userId, sourceId, classify.compounds);
 
   if (chunks.length > 0) {
     const { error: chunksError } = await supabase.from('chunks').insert(
@@ -128,4 +129,80 @@ async function upsertTopics(
   if (linkError) throw new Error(`Failed to link topics to source: ${linkError.message}`);
 
   return topicIds;
+}
+
+/**
+ * Upsert product ideas (biomanufacturing compounds) by case-insensitive name
+ * and link them to the source. Same select-then-insert pattern as
+ * `upsertTopics()` because PostgREST can't target the expression index.
+ */
+async function upsertProductIdeas(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  sourceId: string,
+  compounds: CompoundSuggestion[],
+): Promise<void> {
+  if (compounds.length === 0) return;
+
+  const { data: existing, error: existingError } = await supabase
+    .from('product_ideas')
+    .select('id, name')
+    .eq('user_id', userId);
+
+  if (existingError) {
+    throw new Error(`Failed to load existing product ideas: ${existingError.message}`);
+  }
+
+  const existingByLowerName = new Map((existing ?? []).map((p) => [p.name.toLowerCase(), p.id]));
+
+  const toCreate = compounds.filter((c) => !existingByLowerName.has(c.name.toLowerCase()));
+
+  if (toCreate.length > 0) {
+    const { data: created, error: createError } = await supabase
+      .from('product_ideas')
+      .insert(
+        toCreate.map((c) => ({
+          user_id: userId,
+          name: c.name,
+          description: c.description || null,
+        })),
+      )
+      .select('id, name');
+
+    if (createError) {
+      throw new Error(`Failed to create product ideas: ${createError.message}`);
+    }
+
+    for (const idea of created ?? []) {
+      existingByLowerName.set(idea.name.toLowerCase(), idea.id);
+    }
+  }
+
+  const links: {
+    source_id: string;
+    product_idea_id: string;
+    context: string | null;
+    relevance_score: number;
+  }[] = [];
+
+  for (const compound of compounds) {
+    const ideaId = existingByLowerName.get(compound.name.toLowerCase());
+    if (!ideaId) continue;
+    links.push({
+      source_id: sourceId,
+      product_idea_id: ideaId,
+      context: compound.context || null,
+      relevance_score: compound.relevanceScore,
+    });
+  }
+
+  if (links.length > 0) {
+    const { error: linkError } = await supabase
+      .from('source_product_ideas')
+      .upsert(links, { onConflict: 'source_id,product_idea_id' });
+
+    if (linkError) {
+      throw new Error(`Failed to link product ideas to source: ${linkError.message}`);
+    }
+  }
 }

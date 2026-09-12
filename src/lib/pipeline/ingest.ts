@@ -63,6 +63,7 @@ export async function runIngestPipeline(
       summary: classified.summary,
       sourceType: classified.sourceType,
       topics: classified.topics,
+      compounds: classified.compounds,
       wordCount: extracted.wordCount,
       readingTimeMinutes: extracted.readingTimeMinutes,
       chunkCount: chunks.length,

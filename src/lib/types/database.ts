@@ -264,6 +264,185 @@ export type Database = {
         };
         Relationships: [];
       };
+
+      funding_opportunities: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          organization: string | null;
+          amount: string | null;
+          deadline: string | null;
+          url: string | null;
+          notes: string | null;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          organization?: string | null;
+          amount?: string | null;
+          deadline?: string | null;
+          url?: string | null;
+          notes?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          organization?: string | null;
+          amount?: string | null;
+          deadline?: string | null;
+          url?: string | null;
+          notes?: string | null;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      product_ideas: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          description: string | null;
+          interest_rating: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          description?: string | null;
+          interest_rating?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          description?: string | null;
+          interest_rating?: number | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      source_product_ideas: {
+        Row: {
+          source_id: string;
+          product_idea_id: string;
+          context: string | null;
+          relevance_score: number | null;
+        };
+        Insert: {
+          source_id: string;
+          product_idea_id: string;
+          context?: string | null;
+          relevance_score?: number | null;
+        };
+        Update: {
+          source_id?: string;
+          product_idea_id?: string;
+          context?: string | null;
+          relevance_score?: number | null;
+        };
+        Relationships: [];
+      };
+
+      feed_queries: {
+        Row: {
+          id: string;
+          user_id: string;
+          query_text: string;
+          source_type: Database['public']['Enums']['feed_source_type'];
+          enabled: boolean;
+          last_run_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          query_text: string;
+          source_type?: Database['public']['Enums']['feed_source_type'];
+          enabled?: boolean;
+          last_run_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          query_text?: string;
+          source_type?: Database['public']['Enums']['feed_source_type'];
+          enabled?: boolean;
+          last_run_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
+      feed_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          feed_query_id: string | null;
+          title: string;
+          authors: string | null;
+          abstract: string | null;
+          url: string;
+          external_id: string | null;
+          published_date: string | null;
+          fetched_at: string;
+          status: Database['public']['Enums']['feed_item_status'];
+          ingested_source_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          feed_query_id?: string | null;
+          title: string;
+          authors?: string | null;
+          abstract?: string | null;
+          url: string;
+          external_id?: string | null;
+          published_date?: string | null;
+          fetched_at?: string;
+          status?: Database['public']['Enums']['feed_item_status'];
+          ingested_source_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          feed_query_id?: string | null;
+          title?: string;
+          authors?: string | null;
+          abstract?: string | null;
+          url?: string;
+          external_id?: string | null;
+          published_date?: string | null;
+          fetched_at?: string;
+          status?: Database['public']['Enums']['feed_item_status'];
+          ingested_source_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
 
     Views: Record<never, never>;
@@ -356,6 +535,8 @@ export type Database = {
         | 'complete'
         | 'failed';
       similarity_type: 'duplicate' | 'related' | 'contradicts';
+      feed_source_type: 'openalex' | 'web';
+      feed_item_status: 'new' | 'reviewed' | 'dismissed' | 'ingested';
     };
 
     CompositeTypes: Record<never, never>;
@@ -379,6 +560,10 @@ export type Topic = Tables<'topics'>;
 export type Chunk = Tables<'chunks'>;
 export type Collection = Tables<'collections'>;
 export type SourceSimilarity = Tables<'source_similarities'>;
+export type FundingOpportunity = Tables<'funding_opportunities'>;
+export type ProductIdea = Tables<'product_ideas'>;
+export type FeedQuery = Tables<'feed_queries'>;
+export type FeedItem = Tables<'feed_items'>;
 
 export type MatchedChunk = PublicSchema['Functions']['match_chunks']['Returns'][number];
 export type MatchedSource = PublicSchema['Functions']['match_sources']['Returns'][number];

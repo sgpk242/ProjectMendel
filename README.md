@@ -4,9 +4,11 @@ Personal research intelligence. Capture URLs, ingest their full content, organiz
 them in a searchable dashboard, and interrogate the corpus through an LLM chat
 interface grounded in what you have read.
 
-**Status: Phase 2** — ingest pipeline (paste a URL, get a classified, chunked,
-embedded, dedup-checked source), plus a searchable/filterable dashboard, quick
-actions, collections, and a rich source detail view. Chat is still a stub.
+**Status: Phase 3** — ingest pipeline, searchable/filterable dashboard, quick
+actions, collections, rich source detail view, plus three new dashboard tiles:
+funding opportunities tracker, product idea radar (auto-extracted during
+ingestion), and a weekly papers feed (OpenAlex + Jina Search). Chat is still a
+stub.
 
 ## Stack
 
@@ -56,10 +58,10 @@ under `src/lib/pipeline/` so they can be tested and iterated independently:
 | Stage | File | What it does |
 |---|---|---|
 | Extract | `extract.ts` | Jina Reader — full text, title, description, published date |
-| Classify | `classify.ts` | Groq (`openai/gpt-oss-120b`) — summary, topic tags, source type, author |
+| Classify | `classify.ts` | Groq (`openai/gpt-oss-120b`) — summary, topic tags, source type, author, biomanufacturing compounds |
 | Chunk | `chunk.ts` | Pure function — paragraph-boundary splitting, ~600 tokens/chunk, overlap |
 | Embed | `embed.ts` | Cohere `embed-v4.0` — one vector per chunk, batched, plus the source-level mean |
-| Store | `store.ts` | Writes the source row, upserts topics, inserts chunks — through the caller's RLS |
+| Store | `store.ts` | Writes the source row, upserts topics, upserts product ideas (compounds), inserts chunks — through the caller's RLS |
 | Similarity | `similarity.ts` | `match_sources` RPC — flags ≥0.95 cosine similarity as a duplicate, ≥0.75 as related |
 
 `ingest.ts` orchestrates the stages and advances `sources.ingest_status` at
@@ -151,22 +153,23 @@ caller's RLS applies, and neither returns embedding columns.
 - `SUPABASE_SECRET_KEY` bypasses RLS. Any server code using it must filter by
   `user_id` explicitly.
 
+## Dashboard tiles
+
+Three intelligence tiles sit above the source list on `/dashboard`:
+
+| Tile | What it does | Data source |
+|---|---|---|
+| **Funding Opportunities** | Manually tracked grants — title, org, amount, deadline, link. CRUD via `/api/funding`. Full management at `/funding`. | `funding_opportunities` table |
+| **Product Idea Radar** | Biomanufacturing compounds auto-extracted by the LLM during ingestion. Visible per-source on the detail page; appears on the dashboard only once you assign an interest rating (1-5). | `product_ideas` + `source_product_ideas` junction |
+| **New Papers Feed** | Discovers papers (OpenAlex) and news (Jina Search) matching your queries. Queries can be custom or bulk-imported from existing topics. Manual refresh trigger; items are triaged and one-click ingested into the corpus. Full view at `/feed`. | `feed_queries` + `feed_items` tables |
+
 ## Roadmap
 
 - **Phase 0** — scaffolding, schema, auth. ✅
 - **Phase 1** — ingest pipeline: fetch, extract, chunk, embed, classify, dedup. ✅
 - **Phase 2** — dashboard search/filtering, quick actions, collections CRUD,
   rich source detail view. ✅
-- **Phase 3** — RAG chat with citations, hybrid keyword + vector retrieval.
-- **Phase 4** — contradiction detection, deeper collection tooling.
-
-### Backlog (not yet scoped or scheduled)
-
-Ideas captured for later — each would likely be its own dashboard tile:
-
-- **Funding opportunities tracker** — history of funding opportunities (e.g.
-  DOE chemicals grants): what's open, deadlines, past awards.
-- **Product idea radar** — candidate future biomanufacturing products, the
-  papers behind them, and who's actively working on them.
-- **Weekly new-papers feed** — a recurring pull of newly published papers for
-  review, to triage into the main source library.
+- **Phase 3** — dashboard tiles: funding tracker, product idea radar (auto-extracted
+  compounds), weekly papers feed (OpenAlex + Jina Search). ✅
+- **Phase 4** — RAG chat with citations, hybrid keyword + vector retrieval.
+- **Phase 5** — contradiction detection, deeper collection tooling.

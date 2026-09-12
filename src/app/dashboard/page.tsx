@@ -4,6 +4,9 @@ import { UrlInput } from '@/components/ingest/url-input';
 import { SearchBar } from '@/components/dashboard/search-bar';
 import { FilterChips } from '@/components/dashboard/filter-chips';
 import { FilterSidebar } from '@/components/dashboard/filter-sidebar';
+import { FundingTile, type FundingTileItem } from '@/components/dashboard/funding-tile';
+import { PapersFeedTile, type FeedTileItem } from '@/components/dashboard/papers-feed-tile';
+import { ProductRadarTile, type RatedProductIdea } from '@/components/dashboard/product-radar-tile';
 import { Pagination } from '@/components/dashboard/pagination';
 import { SourceList, type SourceListItem } from '@/components/dashboard/source-list';
 import {
@@ -25,9 +28,12 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 
   const filters = parseSearchParams(toURLSearchParams(await searchParams));
 
-  const [{ sources, totalCount, error }, topics] = await Promise.all([
+  const [{ sources, totalCount, error }, topics, funding, ratedProductIdeas, { newCount, items: recentFeedItems }] = await Promise.all([
     searchSources(supabase, filters),
     loadTopics(supabase),
+    loadFunding(supabase),
+    loadRatedProductIdeas(supabase),
+    loadNewFeedItems(supabase),
   ]);
 
   return (
@@ -36,6 +42,12 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
 
       <div className="mt-6">
         <UrlInput />
+      </div>
+
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <FundingTile opportunities={funding} />
+        <ProductRadarTile ideas={ratedProductIdeas} />
+        <PapersFeedTile newCount={newCount} items={recentFeedItems} />
       </div>
 
       <div className="mt-8 flex flex-col gap-3">
@@ -191,4 +203,55 @@ async function loadCollectionsBySource(
 async function loadTopics(supabase: Supabase): Promise<Topic[]> {
   const { data } = await supabase.from('topics').select('id, name').order('name');
   return data ?? [];
+}
+
+/** Top 5 open funding opportunities sorted by nearest deadline. */
+async function loadFunding(supabase: Supabase): Promise<FundingTileItem[]> {
+  const { data } = await supabase
+    .from('funding_opportunities')
+    .select('id, title, organization, amount, deadline, url, status')
+    .eq('status', 'open')
+    .order('deadline', { ascending: true, nullsFirst: false })
+    .limit(5);
+  return data ?? [];
+}
+
+/** Product ideas that have been rated, with source counts. */
+async function loadRatedProductIdeas(supabase: Supabase): Promise<RatedProductIdea[]> {
+  const { data } = await supabase
+    .from('product_ideas')
+    .select('id, name, description, interest_rating, source_product_ideas(source_id)')
+    .not('interest_rating', 'is', null)
+    .order('interest_rating', { ascending: false })
+    .limit(10);
+
+  return (data ?? []).map((idea) => ({
+    id: idea.id,
+    name: idea.name,
+    description: idea.description,
+    interest_rating: idea.interest_rating!,
+    source_count: Array.isArray(idea.source_product_ideas)
+      ? idea.source_product_ideas.length
+      : 0,
+  }));
+}
+
+/** Count of new feed items + the 5 most recent. */
+async function loadNewFeedItems(
+  supabase: Supabase,
+): Promise<{ newCount: number; items: FeedTileItem[] }> {
+  const [{ count }, { data }] = await Promise.all([
+    supabase
+      .from('feed_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'new'),
+    supabase
+      .from('feed_items')
+      .select('id, title, authors, published_date, url')
+      .eq('status', 'new')
+      .order('fetched_at', { ascending: false })
+      .limit(5),
+  ]);
+
+  return { newCount: count ?? 0, items: data ?? [] };
 }

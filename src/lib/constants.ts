@@ -53,6 +53,40 @@ export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   other: 'Other',
 };
 
+// ---------------------------------------------------------------------------
+// Funding opportunities
+// ---------------------------------------------------------------------------
+
+export const FUNDING_STATUSES = ['open', 'closed', 'applied'] as const;
+export type FundingStatus = (typeof FUNDING_STATUSES)[number];
+
+export const FUNDING_STATUS_LABELS: Record<FundingStatus, string> = {
+  open: 'Open',
+  closed: 'Closed',
+  applied: 'Applied',
+};
+
+// ---------------------------------------------------------------------------
+// Papers feed
+// ---------------------------------------------------------------------------
+
+export const FEED_SOURCE_TYPES = ['openalex', 'web'] as const;
+export type FeedSourceType = (typeof FEED_SOURCE_TYPES)[number];
+
+export const FEED_ITEM_STATUSES = ['new', 'reviewed', 'dismissed', 'ingested'] as const;
+export type FeedItemStatus = (typeof FEED_ITEM_STATUSES)[number];
+
+export const FEED_ITEM_STATUS_LABELS: Record<FeedItemStatus, string> = {
+  new: 'New',
+  reviewed: 'Reviewed',
+  dismissed: 'Dismissed',
+  ingested: 'Ingested',
+};
+
+// ---------------------------------------------------------------------------
+// Embedding configuration
+// ---------------------------------------------------------------------------
+
 /**
  * Embedding configuration. The dimension is baked into the `vector(1024)`
  * columns and their HNSW indexes, so changing model here means a migration
@@ -63,4 +97,4 @@ export const EMBEDDING_MODEL = 'cohere/embed-v4.0';
 export const EMBEDDING_DIMENSIONS = 1024;
 
 /** Routes that require an authenticated session. */
-export const PROTECTED_ROUTES = ['/dashboard', '/source', '/chat'] as const;
+export const PROTECTED_ROUTES = ['/dashboard', '/source', '/chat', '/funding', '/feed'] as const;
