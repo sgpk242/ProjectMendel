@@ -40,18 +40,20 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
     <PageShell email={user?.email}>
       <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
 
-      <div className="mt-6">
+      {/* Row 1: New papers | Product radar. Row 2: Funding | New source upload. */}
+      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+        <PapersFeedTile newCount={newCount} items={recentFeedItems} />
+        <ProductRadarTile ideas={ratedProductIdeas} />
+        <FundingTile opportunities={funding} />
         <UrlInput />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-        <FundingTile opportunities={funding} />
-        <ProductRadarTile ideas={ratedProductIdeas} />
-        <PapersFeedTile newCount={newCount} items={recentFeedItems} />
+      <div className="mt-8">
+        <SearchBar />
       </div>
 
-      <div className="mt-8 flex flex-col gap-3">
-        <SearchBar />
+      <div className="mt-4 flex flex-col gap-3">
+        <FilterSidebar topics={topics} />
         <FilterChips topics={topics} />
       </div>
 
@@ -65,31 +67,27 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           </p>
         </div>
       ) : (
-        <div className="mt-6 flex flex-col gap-6 md:flex-row">
-          <FilterSidebar topics={topics} />
-
-          <div className="min-w-0 flex-1">
-            {sources.length > 0 ? (
-              <SourceList sources={sources} />
-            ) : (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-20 text-center">
-                {hasActiveFilters(filters) ? (
-                  <>
-                    <p className="text-muted">No sources match these filters.</p>
-                    <p className="mt-1 text-muted">Try clearing a filter or search term.</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-muted">No sources yet.</p>
-                    <p className="mt-1 text-muted">Capture your first URL to get started.</p>
-                  </>
-                )}
-              </div>
-            )}
-
-            <div className="mt-8">
-              <Pagination filters={filters} totalCount={totalCount} />
+        <div className="mt-6">
+          {sources.length > 0 ? (
+            <SourceList sources={sources} />
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-20 text-center">
+              {hasActiveFilters(filters) ? (
+                <>
+                  <p className="text-muted">No sources match these filters.</p>
+                  <p className="mt-1 text-muted">Try clearing a filter or search term.</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted">No sources yet.</p>
+                  <p className="mt-1 text-muted">Capture your first URL to get started.</p>
+                </>
+              )}
             </div>
+          )}
+
+          <div className="mt-8">
+            <Pagination filters={filters} totalCount={totalCount} />
           </div>
         </div>
       )}

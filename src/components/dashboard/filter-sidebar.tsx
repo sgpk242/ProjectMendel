@@ -13,7 +13,7 @@ import { READING_BUCKETS, READING_BUCKET_LABELS } from '@/lib/search-params';
 type Topic = { id: string; name: string };
 
 const checkboxClass = 'flex items-center gap-2 text-sm text-muted hover:text-foreground';
-const groupClass = 'border-b border-border py-4 first:pt-0 last:border-b-0';
+const groupClass = 'min-w-40';
 const summaryClass = 'cursor-pointer text-sm font-medium text-foreground';
 const selectClass =
   'rounded-md border border-border bg-surface px-2 py-1 text-sm text-foreground outline-none focus:border-accent';
@@ -64,7 +64,7 @@ export function FilterSidebar({ topics }: { topics: Topic[] }) {
   const activeReading = csvSet(searchParams.get('reading'));
 
   return (
-    <aside className="w-full shrink-0 rounded-lg border border-border bg-surface p-4 md:w-64">
+    <div className="w-full rounded-lg border border-border bg-surface p-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold tracking-tight">Filters</h2>
         <button
@@ -76,132 +76,134 @@ export function FilterSidebar({ topics }: { topics: Topic[] }) {
         </button>
       </div>
 
-      <details className={groupClass} open>
-        <summary className={summaryClass}>Status</summary>
-        <div className="mt-2 flex flex-col gap-1.5">
-          {SOURCE_STATUSES.map((status) => (
-            <label key={status} className={checkboxClass}>
-              <input
-                type="checkbox"
-                checked={activeStatuses.has(status)}
-                onChange={() => toggleCsv('status', status)}
-                className="accent-accent"
-              />
-              {SOURCE_STATUS_LABELS[status]}
-            </label>
-          ))}
-        </div>
-      </details>
-
-      <details className={groupClass}>
-        <summary className={summaryClass}>Source type</summary>
-        <div className="mt-2 flex flex-col gap-1.5">
-          {SOURCE_TYPES.map((type) => (
-            <label key={type} className={checkboxClass}>
-              <input
-                type="checkbox"
-                checked={activeTypes.has(type)}
-                onChange={() => toggleCsv('type', type)}
-                className="accent-accent"
-              />
-              {SOURCE_TYPE_LABELS[type]}
-            </label>
-          ))}
-        </div>
-      </details>
-
-      {topics.length > 0 ? (
+      <div className="mt-3 flex flex-wrap items-start gap-x-8 gap-y-4">
         <details className={groupClass}>
-          <summary className={summaryClass}>Topics</summary>
-          <div className="mt-2 flex max-h-48 flex-col gap-1.5 overflow-y-auto">
-            {topics.map((topic) => (
-              <label key={topic.id} className={checkboxClass}>
+          <summary className={summaryClass}>Status</summary>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {SOURCE_STATUSES.map((status) => (
+              <label key={status} className={checkboxClass}>
                 <input
                   type="checkbox"
-                  checked={activeTopics.has(topic.id)}
-                  onChange={() => toggleCsv('topic', topic.id)}
+                  checked={activeStatuses.has(status)}
+                  onChange={() => toggleCsv('status', status)}
                   className="accent-accent"
                 />
-                {topic.name}
+                {SOURCE_STATUS_LABELS[status]}
               </label>
             ))}
           </div>
         </details>
-      ) : null}
 
-      <details className={groupClass}>
-        <summary className={summaryClass}>Interest rating</summary>
-        <div className="mt-2 flex items-center gap-2">
-          <select
-            aria-label="Minimum interest rating"
-            value={searchParams.get('rating_min') ?? ''}
-            onChange={(e) => setParam('rating_min', e.target.value || null)}
-            className={selectClass}
-          >
-            <option value="">Any</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
+        <details className={groupClass}>
+          <summary className={summaryClass}>Source type</summary>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {SOURCE_TYPES.map((type) => (
+              <label key={type} className={checkboxClass}>
+                <input
+                  type="checkbox"
+                  checked={activeTypes.has(type)}
+                  onChange={() => toggleCsv('type', type)}
+                  className="accent-accent"
+                />
+                {SOURCE_TYPE_LABELS[type]}
+              </label>
             ))}
-          </select>
-          <span className="text-sm text-muted">to</span>
-          <select
-            aria-label="Maximum interest rating"
-            value={searchParams.get('rating_max') ?? ''}
-            onChange={(e) => setParam('rating_max', e.target.value || null)}
-            className={selectClass}
-          >
-            <option value="">Any</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </div>
-      </details>
+          </div>
+        </details>
 
-      <details className={groupClass}>
-        <summary className={summaryClass}>Reading time</summary>
-        <div className="mt-2 flex flex-col gap-1.5">
-          {READING_BUCKETS.map((bucket) => (
-            <label key={bucket} className={checkboxClass}>
+        {topics.length > 0 ? (
+          <details className={groupClass}>
+            <summary className={summaryClass}>Topics</summary>
+            <div className="mt-2 flex max-h-48 w-48 flex-col gap-1.5 overflow-y-auto">
+              {topics.map((topic) => (
+                <label key={topic.id} className={checkboxClass}>
+                  <input
+                    type="checkbox"
+                    checked={activeTopics.has(topic.id)}
+                    onChange={() => toggleCsv('topic', topic.id)}
+                    className="accent-accent"
+                  />
+                  {topic.name}
+                </label>
+              ))}
+            </div>
+          </details>
+        ) : null}
+
+        <details className={groupClass}>
+          <summary className={summaryClass}>Interest rating</summary>
+          <div className="mt-2 flex items-center gap-2">
+            <select
+              aria-label="Minimum interest rating"
+              value={searchParams.get('rating_min') ?? ''}
+              onChange={(e) => setParam('rating_min', e.target.value || null)}
+              className={selectClass}
+            >
+              <option value="">Any</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+            <span className="text-sm text-muted">to</span>
+            <select
+              aria-label="Maximum interest rating"
+              value={searchParams.get('rating_max') ?? ''}
+              onChange={(e) => setParam('rating_max', e.target.value || null)}
+              className={selectClass}
+            >
+              <option value="">Any</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+        </details>
+
+        <details className={groupClass}>
+          <summary className={summaryClass}>Reading time</summary>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {READING_BUCKETS.map((bucket) => (
+              <label key={bucket} className={checkboxClass}>
+                <input
+                  type="checkbox"
+                  checked={activeReading.has(bucket)}
+                  onChange={() => toggleCsv('reading', bucket)}
+                  className="accent-accent"
+                />
+                {READING_BUCKET_LABELS[bucket]}
+              </label>
+            ))}
+          </div>
+        </details>
+
+        <details className={groupClass}>
+          <summary className={summaryClass}>Date captured</summary>
+          <div className="mt-2 flex items-center gap-2">
+            <label className="flex flex-col gap-1 text-sm text-muted">
+              From
               <input
-                type="checkbox"
-                checked={activeReading.has(bucket)}
-                onChange={() => toggleCsv('reading', bucket)}
-                className="accent-accent"
+                type="date"
+                value={searchParams.get('from') ?? ''}
+                onChange={(e) => setParam('from', e.target.value || null)}
+                className={selectClass}
               />
-              {READING_BUCKET_LABELS[bucket]}
             </label>
-          ))}
-        </div>
-      </details>
-
-      <details className={groupClass}>
-        <summary className={summaryClass}>Date captured</summary>
-        <div className="mt-2 flex flex-col gap-2">
-          <label className="flex flex-col gap-1 text-sm text-muted">
-            From
-            <input
-              type="date"
-              value={searchParams.get('from') ?? ''}
-              onChange={(e) => setParam('from', e.target.value || null)}
-              className={selectClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-muted">
-            To
-            <input
-              type="date"
-              value={searchParams.get('to') ?? ''}
-              onChange={(e) => setParam('to', e.target.value || null)}
-              className={selectClass}
-            />
-          </label>
-        </div>
-      </details>
-    </aside>
+            <label className="flex flex-col gap-1 text-sm text-muted">
+              To
+              <input
+                type="date"
+                value={searchParams.get('to') ?? ''}
+                onChange={(e) => setParam('to', e.target.value || null)}
+                className={selectClass}
+              />
+            </label>
+          </div>
+        </details>
+      </div>
+    </div>
   );
 }

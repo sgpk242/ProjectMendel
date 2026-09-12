@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { PageShell } from '@/components/ui/page-shell';
 import { FeedView } from '@/components/feed/feed-view';
 import { createClient } from '@/lib/supabase/server';
@@ -28,12 +26,7 @@ export default async function FeedPage() {
 
   return (
     <PageShell email={user?.email}>
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Papers Feed</h1>
-        <Link href="/dashboard" className="text-sm text-muted hover:text-foreground">
-          ← Dashboard
-        </Link>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight">Papers Feed</h1>
 
       <div className="mt-6">
         <FeedView

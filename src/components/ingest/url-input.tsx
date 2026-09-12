@@ -78,69 +78,75 @@ export function UrlInput() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-lg border border-border bg-surface p-4">
-      <label className="flex flex-col gap-2 text-sm">
-        <span className="text-muted">URL</span>
-        <input
-          type="url"
-          required
-          placeholder="https://example.com/article"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          disabled={status === 'loading'}
-          className={inputClass}
-        />
-      </label>
-
-      <div className="flex gap-4">
-        <label className="flex flex-1 flex-col gap-2 text-sm">
-          <span className="text-muted">Interest rating (optional)</span>
-          <select
-            value={interestRating}
-            onChange={(e) => setInterestRating(e.target.value)}
-            disabled={status === 'loading'}
-            className={inputClass}
-          >
-            <option value="">—</option>
-            {[1, 2, 3, 4, 5].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </label>
+    <div className="rounded-lg border border-border bg-surface">
+      <div className="border-b border-border px-4 py-3">
+        <h2 className="text-sm font-semibold">New Source Upload</h2>
       </div>
 
-      <label className="flex flex-col gap-2 text-sm">
-        <span className="text-muted">Notes (optional)</span>
-        <textarea
-          value={userNote}
-          onChange={(e) => setUserNote(e.target.value)}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="text-muted">URL</span>
+          <input
+            type="url"
+            required
+            placeholder="https://example.com/article"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            disabled={status === 'loading'}
+            className={inputClass}
+          />
+        </label>
+
+        <div className="flex gap-4">
+          <label className="flex flex-1 flex-col gap-2 text-sm">
+            <span className="text-muted">Interest rating (optional)</span>
+            <select
+              value={interestRating}
+              onChange={(e) => setInterestRating(e.target.value)}
+              disabled={status === 'loading'}
+              className={inputClass}
+            >
+              <option value="">—</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="text-muted">Notes (optional)</span>
+          <textarea
+            value={userNote}
+            onChange={(e) => setUserNote(e.target.value)}
+            disabled={status === 'loading'}
+            rows={2}
+            className={inputClass}
+          />
+        </label>
+
+        {error ? (
+          <p role="alert" className="text-sm text-red-400">
+            {error}
+          </p>
+        ) : null}
+
+        <button
+          type="submit"
           disabled={status === 'loading'}
-          rows={2}
-          className={inputClass}
-        />
-      </label>
+          className="mt-1 self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {status === 'loading' ? 'Capturing…' : 'Capture'}
+        </button>
 
-      {error ? (
-        <p role="alert" className="text-sm text-red-400">
-          {error}
-        </p>
-      ) : null}
-
-      <button
-        type="submit"
-        disabled={status === 'loading'}
-        className="mt-1 self-start rounded-md bg-accent px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
-      >
-        {status === 'loading' ? 'Capturing…' : 'Capture'}
-      </button>
-
-      {status === 'loading' ? (
-        <p className="text-xs text-muted">
-          Fetching, classifying, and indexing — this can take up to a minute.
-        </p>
-      ) : null}
-    </form>
+        {status === 'loading' ? (
+          <p className="text-xs text-muted">
+            Fetching, classifying, and indexing — this can take up to a minute.
+          </p>
+        ) : null}
+      </form>
+    </div>
   );
 }

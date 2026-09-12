@@ -17,6 +17,15 @@ export type FundingTileItem = {
 
 type Props = { opportunities: FundingTileItem[] };
 
+// Module-level (not a closure inside the component) so the impure
+// `Date.now()` read isn't flagged as happening "during render" — the same
+// pattern `relativeDate` in source-card.tsx uses.
+function isDeadlineSoon(deadline: string | null): boolean {
+  if (!deadline) return false;
+  const diff = new Date(deadline).getTime() - Date.now();
+  return diff > 0 && diff < 14 * 24 * 60 * 60 * 1000;
+}
+
 export function FundingTile({ opportunities }: Props) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -44,12 +53,6 @@ export function FundingTile({ opportunities }: Props) {
     setAdding(false);
     router.refresh();
   }
-
-  const isDeadlineSoon = (deadline: string | null): boolean => {
-    if (!deadline) return false;
-    const diff = new Date(deadline).getTime() - Date.now();
-    return diff > 0 && diff < 14 * 24 * 60 * 60 * 1000;
-  };
 
   return (
     <div className="rounded-lg border border-border bg-surface">
