@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -80,27 +81,48 @@ export function CompoundList({ compounds }: Props) {
 
   return (
     <div className="space-y-3">
-      {compounds.map((compound) => (
-        <div key={compound.id} className="rounded-md border border-border px-3 py-2">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium">{compound.name}</span>
-            <div className="flex items-center gap-3">
-              {compound.relevanceScore !== null && (
-                <span className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
-                  {Math.round(compound.relevanceScore * 100)}%
-                </span>
+      {compounds.map((compound) => {
+        // A product details page exists for any compound, but it's only
+        // worth visiting once it's been rated — matches the Product Idea
+        // Radar tile only surfacing rated compounds.
+        const hasProductPage = compound.interestRating !== null;
+
+        return (
+          <div
+            key={compound.id}
+            className={`rounded-md border border-border px-3 py-2 transition-colors ${
+              hasProductPage ? 'hover:border-accent/50' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              {hasProductPage ? (
+                <Link
+                  href={`/product/${compound.id}`}
+                  className="text-sm font-medium text-accent hover:underline"
+                >
+                  {compound.name}
+                </Link>
+              ) : (
+                <span className="text-sm font-medium">{compound.name}</span>
               )}
-              <InterestRating compoundId={compound.id} rating={compound.interestRating} />
+              <div className="flex items-center gap-3">
+                {compound.relevanceScore !== null && (
+                  <span className="rounded bg-accent/10 px-1.5 py-0.5 text-xs text-accent">
+                    {Math.round(compound.relevanceScore * 100)}%
+                  </span>
+                )}
+                <InterestRating compoundId={compound.id} rating={compound.interestRating} />
+              </div>
             </div>
+            {compound.description && (
+              <p className="mt-1 text-xs text-muted">{compound.description}</p>
+            )}
+            {compound.context && (
+              <p className="mt-1 text-xs italic text-muted/80">&ldquo;{compound.context}&rdquo;</p>
+            )}
           </div>
-          {compound.description && (
-            <p className="mt-1 text-xs text-muted">{compound.description}</p>
-          )}
-          {compound.context && (
-            <p className="mt-1 text-xs italic text-muted/80">&ldquo;{compound.context}&rdquo;</p>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -51,7 +51,7 @@ export function ProductRadarTile({ ideas }: Props) {
               <Link
                 key={idea.id}
                 href={`/product/${idea.id}`}
-                className="block rounded-md text-sm transition-colors hover:bg-surface-alt"
+                className="block rounded-lg border border-border bg-surface p-3 text-sm transition-colors hover:border-accent/50"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{idea.name}</span>

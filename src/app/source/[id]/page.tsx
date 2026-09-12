@@ -144,7 +144,7 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
             </h2>
             {compounds.length > 0 ? (
               <div className="flex items-center gap-4 text-xs text-muted">
-                <span>Relevance</span>
+                <span>Relevance in Paper</span>
                 <span>Interest</span>
               </div>
             ) : null}

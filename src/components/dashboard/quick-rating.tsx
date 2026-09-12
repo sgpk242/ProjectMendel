@@ -22,6 +22,7 @@ export function QuickRating({
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   async function setRating(next: number | null) {
     setPending(true);
@@ -40,26 +41,45 @@ export function QuickRating({
   const dotSize = size === 'lg' ? 'h-3.5 w-3.5' : 'h-2 w-2';
   const gap = size === 'lg' ? 'gap-1.5' : 'gap-1';
 
+  // The detail page's large rating control (`RatingEditor`) darkens dots up
+  // through the hovered one — a preview of the click, not a tooltip — while
+  // the compact dashboard-card dots keep their simpler per-dot hover/title.
+  const darkenOnHover = size === 'lg';
+
   return (
     <div className="flex items-center gap-2">
       {showLabels ? <span className="text-xs text-muted">Low</span> : null}
       <div
         className={`flex items-center ${gap}`}
-        title={rating ? `Interest: ${rating}/5` : 'Not rated'}
+        title={darkenOnHover ? undefined : rating ? `Interest: ${rating}/5` : 'Not rated'}
+        onMouseLeave={darkenOnHover ? () => setHovered(null) : undefined}
       >
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            disabled={pending}
-            onClick={() => setRating(rating === n ? null : n)}
-            aria-label={`Rate ${n} of 5`}
-            aria-pressed={rating !== null && n <= rating}
-            className={`cursor-pointer rounded-full ${dotSize} transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              rating !== null && n <= rating ? 'bg-accent hover:opacity-80' : 'bg-border hover:bg-muted'
-            }`}
-          />
-        ))}
+        {[1, 2, 3, 4, 5].map((n) => {
+          const filled = rating !== null && n <= rating;
+          const darkened = darkenOnHover && hovered !== null && n <= hovered;
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={pending}
+              onClick={() => setRating(rating === n ? null : n)}
+              onMouseEnter={darkenOnHover ? () => setHovered(n) : undefined}
+              aria-label={`Rate ${n} of 5`}
+              aria-pressed={filled}
+              className={`cursor-pointer rounded-full ${dotSize} transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                filled ? 'bg-accent' : 'bg-border'
+              } ${
+                darkened
+                  ? 'brightness-75'
+                  : !darkenOnHover
+                    ? filled
+                      ? 'hover:opacity-80'
+                      : 'hover:bg-muted'
+                    : ''
+              }`}
+            />
+          );
+        })}
       </div>
       {showLabels ? <span className="text-xs text-muted">High</span> : null}
     </div>
