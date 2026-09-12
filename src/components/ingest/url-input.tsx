@@ -1,9 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 
-import { IngestResultView } from '@/components/ingest/ingest-result';
 import type { IngestResult } from '@/lib/pipeline/types';
 
 type Status = 'idle' | 'loading' | 'error' | 'success';
@@ -11,7 +11,13 @@ type Status = 'idle' | 'loading' | 'error' | 'success';
 const inputClass =
   'rounded-md border border-border bg-surface px-3 py-2 text-foreground outline-none focus:border-accent';
 
-/** Capture form: URL, optional interest rating and notes, submit to /api/ingest. */
+/**
+ * Capture form: URL, optional interest rating and notes, submit to
+ * /api/ingest. Always shows this same upload layout — a capture never takes
+ * over the tile with a full result view; success/failure is a small banner
+ * above the (now-reset) form, and the captured source shows up in the
+ * source repository list below like any other.
+ */
 export function UrlInput() {
   const router = useRouter();
   const [url, setUrl] = useState('');
@@ -19,21 +25,15 @@ export function UrlInput() {
   const [userNote, setUserNote] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<IngestResult | null>(null);
-
-  function reset() {
-    setUrl('');
-    setInterestRating('');
-    setUserNote('');
-    setStatus('idle');
-    setError(null);
-    setResult(null);
-  }
+  const [success, setSuccess] = useState<{ sourceId: string; title: string | null } | null>(
+    null,
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus('loading');
     setError(null);
+    setSuccess(null);
 
     try {
       const response = await fetch('/api/ingest', {
@@ -64,17 +64,17 @@ export function UrlInput() {
         return;
       }
 
-      setResult(body as IngestResult);
-      setStatus('success');
+      const result = body as IngestResult;
+      setSuccess({ sourceId: result.sourceId, title: result.title });
+      setStatus('idle');
+      setUrl('');
+      setInterestRating('');
+      setUserNote('');
       router.refresh();
     } catch {
       setError('Network error — check your connection and try again');
       setStatus('error');
     }
-  }
-
-  if (status === 'success' && result) {
-    return <IngestResultView result={result} onCaptureAnother={reset} />;
   }
 
   return (
@@ -84,6 +84,15 @@ export function UrlInput() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">
+        {success ? (
+          <p className="rounded-md border border-accent/40 bg-accent/10 px-3 py-2 text-sm text-accent">
+            ✓ Captured &ldquo;{success.title || 'Untitled'}&rdquo; —{' '}
+            <Link href={`/source/${success.sourceId}`} className="underline hover:no-underline">
+              view source
+            </Link>
+          </p>
+        ) : null}
+
         <label className="flex flex-col gap-2 text-sm">
           <span className="text-muted">URL</span>
           <input
@@ -91,7 +100,11 @@ export function UrlInput() {
             required
             placeholder="https://example.com/article"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
+            onChange={(e) => {
+              setUrl(e.target.value);
+              setSuccess(null);
+              setError(null);
+            }}
             disabled={status === 'loading'}
             className={inputClass}
           />

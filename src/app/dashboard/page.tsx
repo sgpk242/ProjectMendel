@@ -68,26 +68,30 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
         </div>
       ) : (
         <div className="mt-6">
-          {sources.length > 0 ? (
-            <SourceList sources={sources} />
-          ) : (
-            <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-20 text-center">
-              {hasActiveFilters(filters) ? (
-                <>
-                  <p className="text-muted">No sources match these filters.</p>
-                  <p className="mt-1 text-muted">Try clearing a filter or search term.</p>
-                </>
-              ) : (
-                <>
-                  <p className="text-muted">No sources yet.</p>
-                  <p className="mt-1 text-muted">Capture your first URL to get started.</p>
-                </>
-              )}
-            </div>
-          )}
+          <h2 className="text-sm font-semibold tracking-tight text-muted">Source Repository</h2>
 
-          <div className="mt-8">
-            <Pagination filters={filters} totalCount={totalCount} />
+          <div className="mt-2">
+            {sources.length > 0 ? (
+              <SourceList sources={sources} />
+            ) : (
+              <div className="flex flex-1 flex-col items-center justify-center rounded-lg border border-dashed border-border py-20 text-center">
+                {hasActiveFilters(filters) ? (
+                  <>
+                    <p className="text-muted">No sources match these filters.</p>
+                    <p className="mt-1 text-muted">Try clearing a filter or search term.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-muted">No sources yet.</p>
+                    <p className="mt-1 text-muted">Capture your first URL to get started.</p>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div className="mt-8">
+              <Pagination filters={filters} totalCount={totalCount} />
+            </div>
           </div>
         </div>
       )}

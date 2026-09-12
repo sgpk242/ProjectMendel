@@ -25,6 +25,7 @@ function InterestRating({
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [hovered, setHovered] = useState<number | null>(null);
 
   async function setRating(value: number | null) {
     setSaving(true);
@@ -37,21 +38,29 @@ function InterestRating({
     router.refresh();
   }
 
+  // Highlight every dot up to and including the hovered one, not just the
+  // one under the cursor — falls back to the saved rating when not hovering.
+  const highlightThrough = hovered ?? rating;
+
   return (
-    <span className={`inline-flex gap-0.5 ${saving ? 'opacity-50' : ''}`}>
+    <span
+      className={`inline-flex gap-0.5 ${saving ? 'opacity-50' : ''}`}
+      onMouseLeave={() => setHovered(null)}
+    >
       {[1, 2, 3, 4, 5].map((i) => (
         <button
           key={i}
           onClick={() => setRating(rating === i ? null : i)}
+          onMouseEnter={() => setHovered(i)}
           disabled={saving}
-          className="group relative"
+          className="relative"
           title={rating === i ? 'Clear rating' : `Rate ${i}/5`}
         >
           <span
             className={`inline-block h-2 w-2 rounded-full transition-colors ${
-              rating !== null && i <= rating
+              highlightThrough !== null && i <= highlightThrough
                 ? 'bg-accent'
-                : 'bg-border group-hover:bg-accent/50'
+                : 'bg-border'
             }`}
           />
         </button>

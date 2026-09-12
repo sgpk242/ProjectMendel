@@ -53,7 +53,8 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
     <PageShell email={user?.email}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">{source.title || 'Untitled'}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">Source Details</h1>
+          <p className="mt-1 text-lg text-foreground">{source.title || 'Untitled'}</p>
           {/* The URL is the primary way back to the actual content, so it's
               sized and colored to read as the page's second headline, not a
               footnote. */}
@@ -127,7 +128,7 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
       {source.ingest_status === 'complete' ? (
         <div className="mt-6">
           <h2 className="text-sm font-semibold tracking-tight text-muted">
-            Biomanufacturing Compounds
+            Biochemical products mentioned
           </h2>
           <div className="mt-2">
             <CompoundList compounds={compounds} />
