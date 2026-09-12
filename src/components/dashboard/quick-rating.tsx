@@ -55,8 +55,8 @@ export function QuickRating({
             onClick={() => setRating(rating === n ? null : n)}
             aria-label={`Rate ${n} of 5`}
             aria-pressed={rating !== null && n <= rating}
-            className={`rounded-full ${dotSize} transition-colors disabled:opacity-50 ${
-              rating !== null && n <= rating ? 'bg-accent' : 'bg-border hover:bg-muted'
+            className={`cursor-pointer rounded-full ${dotSize} transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              rating !== null && n <= rating ? 'bg-accent hover:opacity-80' : 'bg-border hover:bg-muted'
             }`}
           />
         ))}

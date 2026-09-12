@@ -44,6 +44,7 @@ export async function store(
       embedding_model: EMBEDDING_MODEL,
       ingest_status: 'complete',
       ingest_error: null,
+      classification_truncated: classify.truncated,
     })
     .eq('id', sourceId);
 

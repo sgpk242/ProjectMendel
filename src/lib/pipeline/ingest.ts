@@ -68,6 +68,7 @@ export async function runIngestPipeline(
       readingTimeMinutes: extracted.readingTimeMinutes,
       chunkCount: chunks.length,
       similarSources,
+      truncated: classified.truncated,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

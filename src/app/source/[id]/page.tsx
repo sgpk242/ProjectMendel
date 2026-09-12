@@ -54,7 +54,7 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">Source Details</h1>
-          <p className="mt-1 text-lg text-foreground">{source.title || 'Untitled'}</p>
+          <p className="mt-1 text-lg italic text-foreground">{source.title || 'Untitled'}</p>
           {/* The URL is the primary way back to the actual content, so it's
               sized and colored to read as the page's second headline, not a
               footnote. */}
@@ -100,6 +100,17 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
         </div>
       ) : null}
 
+      {source.classification_truncated ? (
+        <div className="mt-6 rounded-md border border-yellow-700/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-300">
+          <p className="font-medium">Classification output was truncated</p>
+          <p className="mt-1 text-yellow-300/80">
+            The model hit its output limit while classifying this source, so the summary, topics,
+            or biochemical products below may be an incomplete read. Delete and re-capture this
+            source to try again.
+          </p>
+        </div>
+      ) : null}
+
       <div className="mt-6 flex flex-wrap items-center gap-6">
         <StatusEditor sourceId={source.id} status={source.status} />
         <RatingEditor sourceId={source.id} rating={source.interest_rating} />
@@ -127,9 +138,17 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
 
       {source.ingest_status === 'complete' ? (
         <div className="mt-6">
-          <h2 className="text-sm font-semibold tracking-tight text-muted">
-            Biochemical products mentioned
-          </h2>
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold tracking-tight text-muted">
+              Biochemical products mentioned
+            </h2>
+            {compounds.length > 0 ? (
+              <div className="flex items-center gap-4 text-xs text-muted">
+                <span>Relevance</span>
+                <span>Interest</span>
+              </div>
+            ) : null}
+          </div>
           <div className="mt-2">
             <CompoundList compounds={compounds} />
           </div>
@@ -163,7 +182,7 @@ async function loadSource(supabase: Supabase, id: string) {
   const { data } = await supabase
     .from('sources')
     .select(
-      'id, title, url, author, publication, published_date, captured_at, summary, source_type, status, ingest_status, ingest_error, interest_rating, word_count, reading_time_minutes, user_note',
+      'id, title, url, author, publication, published_date, captured_at, summary, source_type, status, ingest_status, ingest_error, interest_rating, word_count, reading_time_minutes, user_note, classification_truncated',
     )
     .eq('id', id)
     .maybeSingle();

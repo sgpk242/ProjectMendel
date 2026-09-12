@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 import { CollectionPicker } from '@/components/dashboard/collection-picker';
-import { QuickNote } from '@/components/dashboard/quick-note';
 import { QuickRating } from '@/components/dashboard/quick-rating';
 import { QuickStatus } from '@/components/dashboard/quick-status';
 import { DeleteSourceButton } from '@/components/source/delete-button';
@@ -91,7 +90,6 @@ export function SourceCard({ source }: { source: SourceListItem }) {
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <QuickStatus sourceId={source.id} status={source.status} />
         <QuickRating sourceId={source.id} rating={source.interestRating} />
-        <QuickNote sourceId={source.id} note={source.userNote} />
         <CollectionPicker sourceId={source.id} initialCollectionIds={source.collectionIds} />
       </div>
     </li>

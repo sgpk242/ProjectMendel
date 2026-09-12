@@ -43,6 +43,12 @@ export type ClassifyResult = {
   publication: string | null;
   author: string | null;
   compounds: CompoundSuggestion[];
+  /**
+   * True when Groq's response hit `max_tokens` (`finish_reason === 'length'`)
+   * rather than completing naturally — the JSON was still parseable, but the
+   * summary/topics/compounds may be an incomplete read of the source.
+   */
+  truncated: boolean;
 };
 
 /** A single chunk produced by `chunk()`, with offsets into the source text. */
@@ -81,4 +87,5 @@ export type IngestResult = {
   readingTimeMinutes: number;
   chunkCount: number;
   similarSources: SimilarityMatch[];
+  truncated: boolean;
 };

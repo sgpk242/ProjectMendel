@@ -97,4 +97,11 @@ export const EMBEDDING_MODEL = 'cohere/embed-v4.0';
 export const EMBEDDING_DIMENSIONS = 1024;
 
 /** Routes that require an authenticated session. */
-export const PROTECTED_ROUTES = ['/dashboard', '/source', '/chat', '/funding', '/feed'] as const;
+export const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/source',
+  '/product',
+  '/chat',
+  '/funding',
+  '/feed',
+] as const;

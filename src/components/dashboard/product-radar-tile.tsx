@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export type RatedProductIdea = {
   id: string;
   name: string;
@@ -46,7 +48,11 @@ export function ProductRadarTile({ ideas }: Props) {
         ) : (
           <div className="space-y-2.5">
             {ideas.map((idea) => (
-              <div key={idea.id} className="text-sm">
+              <Link
+                key={idea.id}
+                href={`/product/${idea.id}`}
+                className="block rounded-md text-sm transition-colors hover:bg-surface-alt"
+              >
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-medium">{idea.name}</span>
                   <InterestDots rating={idea.interest_rating} />
@@ -57,7 +63,7 @@ export function ProductRadarTile({ ideas }: Props) {
                 <p className="mt-0.5 text-xs text-muted">
                   From {idea.source_count} {idea.source_count === 1 ? 'paper' : 'papers'}
                 </p>
-              </div>
+              </Link>
             ))}
           </div>
         )}

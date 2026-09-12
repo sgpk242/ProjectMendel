@@ -46,7 +46,7 @@ export async function classify(
   url: string,
 ): Promise<ClassifyResult> {
   const client = new Groq();
-  const truncated = content.slice(0, MAX_CONTENT_CHARS);
+  const truncatedContent = content.slice(0, MAX_CONTENT_CHARS);
 
   const response = await client.chat.completions.create({
     model: MODEL,
@@ -59,16 +59,23 @@ export async function classify(
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Title: ${title ?? '(unknown)'}\nURL: ${url}\n\n${truncated}`,
+        content: `Title: ${title ?? '(unknown)'}\nURL: ${url}\n\n${truncatedContent}`,
       },
     ],
   });
 
-  const text = response.choices[0]?.message?.content;
+  const choice = response.choices[0];
+  const text = choice?.message?.content;
   if (!text) throw new Error('Groq returned no text content for classification');
 
+  // `finish_reason === 'length'` means Groq stopped because max_tokens was
+  // hit, not because the model was done — the JSON may still parse (if the
+  // cut happened to land cleanly) but the content itself is an incomplete
+  // read of the source. Surfaced to the caller rather than silently accepted.
+  const outputTruncated = choice.finish_reason === 'length';
+
   const parsed = parseClassification(text);
-  return normalize(parsed);
+  return normalize(parsed, outputTruncated);
 }
 
 /** Parse Claude's JSON, tolerating stray text around the object. */
@@ -90,7 +97,7 @@ function parseClassification(text: string): RawClassification {
 }
 
 /** Validate and coerce the parsed response into a well-formed ClassifyResult. */
-function normalize(raw: RawClassification): ClassifyResult {
+function normalize(raw: RawClassification, truncated: boolean): ClassifyResult {
   const summary = typeof raw.summary === 'string' && raw.summary.trim() ? raw.summary.trim() : '';
 
   const topics: TopicSuggestion[] = Array.isArray(raw.topics)
@@ -130,7 +137,7 @@ function normalize(raw: RawClassification): ClassifyResult {
         .filter((c) => c.name.length > 0)
     : [];
 
-  return { summary, topics, sourceType, publication, author, compounds };
+  return { summary, topics, sourceType, publication, author, compounds, truncated };
 }
 
 function clamp01(value: number): number {

@@ -51,6 +51,7 @@ export type Database = {
           ingest_attempts: number;
           source_embedding: string | null;
           embedding_model: string | null;
+          classification_truncated: boolean;
           /** Generated column — readable, never writable. */
           fts: unknown | null;
         };
@@ -79,6 +80,7 @@ export type Database = {
           ingest_attempts?: number;
           source_embedding?: string | null;
           embedding_model?: string | null;
+          classification_truncated?: boolean;
         };
         Update: {
           id?: string;
@@ -105,6 +107,7 @@ export type Database = {
           ingest_attempts?: number;
           source_embedding?: string | null;
           embedding_model?: string | null;
+          classification_truncated?: boolean;
         };
         Relationships: [];
       };
