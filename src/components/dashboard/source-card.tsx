@@ -1,7 +1,6 @@
 import Link from 'next/link';
 
 import { CollectionPicker } from '@/components/dashboard/collection-picker';
-import { QuickRating } from '@/components/dashboard/quick-rating';
 import { QuickStatus } from '@/components/dashboard/quick-status';
 import { DeleteSourceButton } from '@/components/source/delete-button';
 import { SOURCE_TYPE_LABELS, type IngestStatus } from '@/lib/constants';
@@ -29,6 +28,23 @@ const INGEST_LABEL: Record<IngestStatus, string> = {
 };
 
 const relativeTime = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+/** Read-only interest-rating indicator — rating is changed from the source
+ * detail page only, not from the dashboard. */
+function InterestDots({ rating }: { rating: number | null }) {
+  return (
+    <span className="inline-flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <span
+          key={i}
+          className={`inline-block h-2 w-2 rounded-full ${
+            rating !== null && i <= rating ? 'bg-accent' : 'bg-border'
+          }`}
+        />
+      ))}
+    </span>
+  );
+}
 
 function relativeDate(iso: string): string {
   const diffMs = new Date(iso).getTime() - Date.now();
@@ -89,7 +105,7 @@ export function SourceCard({ source }: { source: SourceListItem }) {
 
       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <QuickStatus sourceId={source.id} status={source.status} />
-        <QuickRating sourceId={source.id} rating={source.interestRating} />
+        <InterestDots rating={source.interestRating} />
         <CollectionPicker sourceId={source.id} initialCollectionIds={source.collectionIds} />
       </div>
     </li>

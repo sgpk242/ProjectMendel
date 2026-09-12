@@ -17,6 +17,8 @@
      explicitly every time, even though it seems basic.
   3. Then the rest of the usual list (`npm install`, `npm run db:push`,
      `npm run db:types`, etc.) as needed for that push's changes.
+  4. `npm run dev` to start the server — always state this explicitly as
+     the final step, every time, even though it seems basic.
 - State the command list as just the commands to run — no note about which
   ones were skipped or why something wasn't needed (e.g. don't add "no
   npm install needed, no new dependencies"). Silence on a command is enough.

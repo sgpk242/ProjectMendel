@@ -67,10 +67,17 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
           </p>
         </div>
       ) : (
-        <div className="mt-6">
-          <h2 className="text-sm font-semibold tracking-tight text-muted">Source Repository</h2>
+        <div className="mt-6 rounded-lg border border-border bg-surface">
+          <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+            <h2 className="text-sm font-semibold">Source Repository</h2>
+            {totalCount > 0 && (
+              <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">
+                {totalCount}
+              </span>
+            )}
+          </div>
 
-          <div className="mt-2">
+          <div className="px-4 py-3">
             {sources.length > 0 ? (
               <SourceList sources={sources} />
             ) : (
