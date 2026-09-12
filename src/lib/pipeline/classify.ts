@@ -18,7 +18,11 @@ const SYSTEM_PROMPT = `You are a research librarian classifying web content. Giv
 
 - "summary": 2-3 sentences summarizing the key claims and findings. Be specific — name the who, what, and so-what.
 - "topics": Array of 3-7 topic tags. Each: { "name": "Topic Name", "relevanceScore": 0.0-1.0 }. Title Case. Prefer established discipline terms. Order by relevance descending.
-- "sourceType": One of: "article", "paper", "blog", "linkedin_post", "report", "press_release", "other".
+- "sourceType": One of:
+  - "scientific_paper" — a peer-reviewed journal paper (published in a venue like Nature, Science, PLOS, IEEE, etc.; has a DOI, abstract, methods/results/discussion structure, or a preprint of one).
+  - "non_peer_reviewed_article" — industry media, news, or aggregator coverage of a topic; not peer-reviewed and not the primary research itself.
+  - "white_paper" — an informational report from a company, vendor, or organization making a case or explaining a technology/product; not peer-reviewed, not news coverage.
+  - "blog", "linkedin_post", "report", "press_release", "other" — as their names suggest.
 - "publication": The outlet name if identifiable (e.g. "Nature", "MIT Technology Review"). null if unclear.
 - "author": The author's name if identifiable from byline or content. null if unclear.
 - "compounds": Array of ALL potential biomanufacturing chemical compounds or products discussed in the main body text (introduction, methods, results, discussion) — do not cap the count, and do not omit one for the sake of brevity. Only pull from the article's own body text, never from the titles or subject matter of works in a references/bibliography/citations list — a compound mentioned only because it appears in a cited paper's title does not count. Each: { "name": "Compound Name", "description": "Brief description of what it is and its biomanufacturing relevance", "context": "Brief quote or paraphrase of where this compound is discussed in the body text", "relevanceScore": 0.0-1.0 }. Only include compounds that could realistically be produced through biological manufacturing (fermentation, enzymatic synthesis, metabolic engineering, etc.). Return an empty array if none are relevant.
@@ -115,7 +119,7 @@ function normalize(raw: RawClassification, truncated: boolean): ClassifyResult {
 
   const sourceType: SourceType = SOURCE_TYPES.includes(raw.sourceType as SourceType)
     ? (raw.sourceType as SourceType)
-    : 'article';
+    : 'non_peer_reviewed_article';
 
   const publication =
     typeof raw.publication === 'string' && raw.publication.trim() ? raw.publication.trim() : null;

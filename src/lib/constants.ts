@@ -8,8 +8,9 @@
  */
 
 export const SOURCE_TYPES = [
-  'article',
-  'paper',
+  'scientific_paper',
+  'non_peer_reviewed_article',
+  'white_paper',
   'blog',
   'linkedin_post',
   'report',
@@ -44,8 +45,9 @@ export const SOURCE_STATUS_LABELS: Record<SourceStatus, string> = {
 };
 
 export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
-  article: 'Article',
-  paper: 'Paper',
+  scientific_paper: 'Scientific Paper',
+  non_peer_reviewed_article: 'Non-Peer-Reviewed Article',
+  white_paper: 'White Paper',
   blog: 'Blog',
   linkedin_post: 'LinkedIn post',
   report: 'Report',

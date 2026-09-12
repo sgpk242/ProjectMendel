@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 
-import { SOURCE_STATUSES } from '@/lib/constants';
+import { SOURCE_STATUSES, SOURCE_TYPES } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import type { TablesUpdate } from '@/lib/types/database';
 
 /**
  * PATCH /api/source/[id] — edit the fields the user controls directly:
- * reading status, interest rating, and their own note. Every quick action
- * on the dashboard and every editable field on the detail page goes through
- * this one handler. RLS ("sources: owner can update") scopes the write to
- * the caller's own row, so a bad id 404s the same way DELETE's does.
+ * reading status, source type, interest rating, and their own note. Every
+ * quick action on the dashboard and every editable field on the detail page
+ * goes through this one handler. RLS ("sources: owner can update") scopes
+ * the write to the caller's own row, so a bad id 404s the same way DELETE's
+ * does.
  */
 export async function PATCH(
   request: Request,
@@ -37,7 +38,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { status, interest_rating, user_note } = body as Record<string, unknown>;
+  const { status, source_type, interest_rating, user_note } = body as Record<string, unknown>;
   const updates: TablesUpdate<'sources'> = {};
 
   if (status !== undefined) {
@@ -45,6 +46,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
     updates.status = status as (typeof SOURCE_STATUSES)[number];
+  }
+
+  if (source_type !== undefined) {
+    if (
+      typeof source_type !== 'string' ||
+      !SOURCE_TYPES.includes(source_type as (typeof SOURCE_TYPES)[number])
+    ) {
+      return NextResponse.json({ error: 'Invalid source_type' }, { status: 400 });
+    }
+    updates.source_type = source_type as (typeof SOURCE_TYPES)[number];
   }
 
   if (interest_rating !== undefined) {
@@ -78,7 +89,7 @@ export async function PATCH(
     .from('sources')
     .update(updates)
     .eq('id', id)
-    .select('id, status, interest_rating, user_note')
+    .select('id, status, source_type, interest_rating, user_note')
     .maybeSingle();
 
   if (error) {

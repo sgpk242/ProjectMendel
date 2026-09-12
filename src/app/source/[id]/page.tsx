@@ -7,6 +7,7 @@ import { MetadataPanel } from '@/components/source/metadata-panel';
 import { NoteEditor } from '@/components/source/note-editor';
 import { RatingEditor } from '@/components/source/rating-editor';
 import { SimilarSources, type SimilarSourceItem } from '@/components/source/similar-sources';
+import { SourceTypeEditor } from '@/components/source/source-type-editor';
 import { StatusEditor } from '@/components/source/status-editor';
 import { SummarySection } from '@/components/source/summary-section';
 import { TopicList, type TopicItem } from '@/components/source/topic-list';
@@ -81,7 +82,6 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
           publication={source.publication}
           publishedDate={source.published_date}
           capturedAt={source.captured_at}
-          sourceType={source.source_type}
           wordCount={source.word_count}
           readingTimeMinutes={source.reading_time_minutes}
         />
@@ -113,6 +113,7 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
 
       <div className="mt-6 flex flex-wrap items-center gap-6">
         <StatusEditor sourceId={source.id} status={source.status} />
+        <SourceTypeEditor sourceId={source.id} sourceType={source.source_type} />
         <RatingEditor sourceId={source.id} rating={source.interest_rating} />
       </div>
 

@@ -521,8 +521,9 @@ export type Database = {
 
     Enums: {
       source_type:
-        | 'article'
-        | 'paper'
+        | 'scientific_paper'
+        | 'non_peer_reviewed_article'
+        | 'white_paper'
         | 'blog'
         | 'linkedin_post'
         | 'report'
