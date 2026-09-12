@@ -13,7 +13,7 @@ export function Nav({ email }: { email?: string }) {
     <header className="border-b border-border bg-surface">
       <nav className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-6 py-4">
         <Link href="/dashboard" className="text-lg font-semibold tracking-tight">
-          Mendel
+          Mendel 🦠
         </Link>
 
         <div className="flex items-center gap-6 text-sm">
