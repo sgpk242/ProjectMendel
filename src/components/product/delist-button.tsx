@@ -6,9 +6,11 @@ import { useState } from 'react';
 /**
  * Sets a product idea's interest_rating to 0 ("de-listed") — distinct from
  * null ("never rated") — which removes it from the dashboard's Product Idea
- * Radar tile without touching its `source_product_ideas` links, so it stays
- * visible (and clickable through to this page) on every source that
- * mentions it.
+ * Radar tile and un-links it from source pages' compound lists, without
+ * touching its `source_product_ideas` rows or notes — the mention still
+ * shows on every source that references it, just no longer as a link.
+ * Redirects to the dashboard on success, since this page's own "de-listed"
+ * state has nothing further to show here.
  */
 export function DelistButton({ productId }: { productId: string }) {
   const router = useRouter();
@@ -22,7 +24,10 @@ export function DelistButton({ productId }: { productId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ interest_rating: 0 }),
       });
-      if (response.ok) router.refresh();
+      if (response.ok) {
+        router.push('/dashboard');
+        return;
+      }
     } finally {
       setPending(false);
     }

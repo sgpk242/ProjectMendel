@@ -83,9 +83,11 @@ export function CompoundList({ compounds }: Props) {
     <div className="space-y-3">
       {compounds.map((compound) => {
         // A product details page exists for any compound, but it's only
-        // worth visiting once it's been rated — matches the Product Idea
-        // Radar tile only surfacing rated compounds.
-        const hasProductPage = compound.interestRating !== null;
+        // worth linking to once it's been rated 1-5 — matches the Product
+        // Idea Radar tile. 0 means de-listed (distinct from null/never
+        // rated) and, like null, isn't linked from here.
+        const hasProductPage =
+          compound.interestRating !== null && compound.interestRating > 0;
 
         return (
           <div
