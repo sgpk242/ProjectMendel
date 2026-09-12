@@ -54,6 +54,10 @@ async function embedBatch(
       input_type: inputType,
       embedding_types: ['float'],
       truncate: 'END',
+      // embed-v4.0 is Matryoshka — it can emit 256/512/1024/1536 dims from
+      // the same model. Without this it defaults to 1536, which doesn't
+      // match the schema's vector(1024) columns.
+      output_dimension: EMBEDDING_DIMENSIONS,
     }),
   });
 
