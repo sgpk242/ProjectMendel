@@ -61,6 +61,14 @@ function InterestRating({
 }
 
 export function CompoundList({ compounds }: Props) {
+  if (compounds.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        No biomanufacturing compounds were identified in this source.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {compounds.map((compound) => (

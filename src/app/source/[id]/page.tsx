@@ -124,7 +124,7 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
         </div>
       ) : null}
 
-      {compounds.length > 0 ? (
+      {source.ingest_status === 'complete' ? (
         <div className="mt-6">
           <h2 className="text-sm font-semibold tracking-tight text-muted">
             Biomanufacturing Compounds
