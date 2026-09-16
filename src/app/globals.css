@@ -29,3 +29,118 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/*
+ * Dashboard-only "inside a bioreactor" backdrop (see
+ * src/components/dashboard/fermentor-backdrop.tsx). --broth-surface is the
+ * distance from the top of the page down to the top of the first tile
+ * row — nav height + main's top padding + the h1 + its margin. Tune this
+ * one value if the froth line drifts from the tile edge.
+ */
+.fermentor-root {
+  position: relative;
+  --broth-surface: 11.5rem;
+}
+
+.fermentor-metal,
+.fermentor-broth,
+.fermentor-froth {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.fermentor-metal {
+  top: 0;
+  height: var(--broth-surface);
+  background:
+    repeating-linear-gradient(
+      100deg,
+      rgba(255, 255, 255, 0.035) 0px,
+      rgba(255, 255, 255, 0.035) 1px,
+      transparent 1px,
+      transparent 7px
+    ),
+    linear-gradient(
+      180deg,
+      #565d64 0%,
+      #6e767e 20%,
+      #565d64 48%,
+      #454b51 78%,
+      #363b40 100%
+    );
+}
+
+.fermentor-broth {
+  top: var(--broth-surface);
+  bottom: 0;
+  overflow: hidden;
+  background-color: #9c631c;
+  background-image:
+    radial-gradient(ellipse 60% 30% at 20% 15%, rgba(255, 255, 255, 0.05), transparent 70%),
+    radial-gradient(ellipse 50% 25% at 80% 55%, rgba(0, 0, 0, 0.08), transparent 70%),
+    radial-gradient(ellipse 55% 30% at 35% 85%, rgba(0, 0, 0, 0.06), transparent 70%);
+}
+
+.fermentor-froth {
+  top: calc(var(--broth-surface) - 9px);
+  height: 18px;
+  background-image:
+    radial-gradient(circle 2.5px at 8% 45%, rgba(255, 244, 222, 0.9), transparent 65%),
+    radial-gradient(circle 3.5px at 24% 55%, rgba(255, 244, 222, 0.75), transparent 65%),
+    radial-gradient(circle 2px at 42% 40%, rgba(255, 244, 222, 0.85), transparent 65%),
+    radial-gradient(circle 3px at 61% 58%, rgba(255, 244, 222, 0.7), transparent 65%),
+    radial-gradient(circle 2.5px at 79% 45%, rgba(255, 244, 222, 0.85), transparent 65%),
+    radial-gradient(circle 3px at 93% 55%, rgba(255, 244, 222, 0.7), transparent 65%),
+    linear-gradient(180deg, rgba(240, 210, 160, 0.35) 0%, rgba(156, 99, 28, 0) 100%);
+  background-repeat: repeat-x;
+  background-size:
+    140px 18px,
+    140px 18px,
+    140px 18px,
+    140px 18px,
+    140px 18px,
+    140px 18px,
+    100% 100%;
+}
+
+.fermentor-bubbles {
+  position: absolute;
+  inset: 0;
+}
+
+.fermentor-bubble {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 240, 210, 0.9),
+    rgba(255, 205, 130, 0.25) 60%,
+    transparent 75%
+  );
+  animation: fermentor-rise 6s ease-in infinite;
+}
+
+@keyframes fermentor-rise {
+  0% {
+    transform: translateY(0) scale(0.85);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.55;
+  }
+  80% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-24px) scale(1);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fermentor-bubble {
+    animation: none;
+    opacity: 0.35;
+  }
+}

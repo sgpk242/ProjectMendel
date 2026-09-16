@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PageShell } from '@/components/ui/page-shell';
 import { UrlInput } from '@/components/ingest/url-input';
 import { SearchBar } from '@/components/dashboard/search-bar';
+import { FermentorBackdrop } from '@/components/dashboard/fermentor-backdrop';
 import { FilterChips } from '@/components/dashboard/filter-chips';
 import { FilterSidebar } from '@/components/dashboard/filter-sidebar';
 import { FundingTile, type FundingTileItem } from '@/components/dashboard/funding-tile';
@@ -37,8 +38,10 @@ export default async function DashboardPage({ searchParams }: PageProps<'/dashbo
   ]);
 
   return (
-    <PageShell email={user?.email}>
-      <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+    <PageShell email={user?.email} backdrop={<FermentorBackdrop />}>
+      <h1 className="text-2xl font-semibold tracking-tight [text-shadow:0_1px_4px_rgba(0,0,0,0.55)]">
+        Dashboard
+      </h1>
 
       {/* Row 1: New papers | Product radar. Row 2: Funding | New source upload. */}
       <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-2">
