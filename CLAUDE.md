@@ -22,3 +22,5 @@
 - State the command list as just the commands to run — no note about which
   ones were skipped or why something wasn't needed (e.g. don't add "no
   npm install needed, no new dependencies"). Silence on a command is enough.
+- The user develops on a Windows PC (terminal, not Mac). Give shell
+  instructions in PowerShell/CMD form, not macOS/Homebrew commands.
