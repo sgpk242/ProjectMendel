@@ -1,18 +1,23 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 
 import { runIngestPipeline } from '@/lib/pipeline/ingest';
 import { createClient } from '@/lib/supabase/server';
 import { canonicalizeUrl } from '@/lib/url';
 
+// Matches the Vercel Hobby cap. The sync path already ran this long before
+// async mode existed — `after()` doesn't change total duration, it just lets
+// the response go out first.
+export const maxDuration = 60;
+
 /**
  * POST /api/ingest — capture a URL and run it through the full pipeline.
  *
- * Runs synchronously: fetch → extract → classify → chunk → embed → store →
- * similarity check, then responds. Fine for local dev (no timeout) and for
- * Vercel Pro's 300s limit on realistic article lengths. If ingest volume or
- * article length grows past that, this should become a thin enqueue —
- * insert as `pending` and hand off to a background job — polling
- * `ingest_status` instead of blocking the request.
+ * By default runs synchronously: fetch → extract → classify → chunk → embed
+ * → store → similarity check, then responds with the full `IngestResult`
+ * (201). Pass `async: true` in the body (used by the mobile capture page) to
+ * insert the row, schedule the pipeline via `after()`, and respond
+ * immediately (202) with just the new source id — the pipeline finishes in
+ * the background and `ingest_status` on the row tracks its progress.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -31,10 +36,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Expected a JSON body' }, { status: 400 });
   }
 
-  const { url, interestRating, userNote } = body as {
+  const { url, interestRating, userNote, async: asyncMode } = body as {
     url?: unknown;
     interestRating?: unknown;
     userNote?: unknown;
+    async?: unknown;
   };
 
   if (typeof url !== 'string' || url.length === 0) {
@@ -92,6 +98,17 @@ export async function POST(request: Request) {
       { error: `Failed to create source: ${insertError.message}` },
       { status: 500 },
     );
+  }
+
+  if (asyncMode === true) {
+    after(async () => {
+      try {
+        await runIngestPipeline(supabase, user.id, source.id, url);
+      } catch {
+        // runIngestPipeline already records the failure on the row.
+      }
+    });
+    return NextResponse.json({ sourceId: source.id, status: 'pending' }, { status: 202 });
   }
 
   try {

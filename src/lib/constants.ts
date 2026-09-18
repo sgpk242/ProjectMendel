@@ -106,4 +106,5 @@ export const PROTECTED_ROUTES = [
   '/chat',
   '/funding',
   '/feed',
+  '/capture',
 ] as const;

@@ -48,10 +48,14 @@ export async function updateSession(request: NextRequest) {
   );
 
   if (!user && isProtected) {
+    // Preserve where they were headed, query string included — the capture
+    // page depends on this to survive the login round-trip with the shared
+    // URL still attached.
+    const destination = pathname + request.nextUrl.search;
     const url = request.nextUrl.clone();
     url.pathname = '/';
-    // Preserve where they were headed so login can send them back.
-    url.searchParams.set('redirectTo', pathname);
+    url.search = '';
+    url.searchParams.set('redirectTo', destination);
     return NextResponse.redirect(url);
   }
 
