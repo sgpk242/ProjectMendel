@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 
-type Status = 'idle' | 'loading' | 'error' | 'captured';
+type Status = 'idle' | 'loading' | 'error';
 
 const inputClass =
   'rounded-md border border-border bg-surface px-3 py-3 text-base text-foreground outline-none focus:border-accent';
@@ -11,11 +12,12 @@ const inputClass =
 /**
  * Mobile capture form used by the PWA share target. Submits with
  * `async: true` so `/api/ingest` responds the moment the row is inserted
- * (202) instead of waiting out the full pipeline — the user gets an instant
- * "Captured!" and can go back to whatever they were reading; the source
- * shows up in the dashboard once the background pipeline finishes.
+ * (202) instead of waiting out the full pipeline, then redirects straight
+ * to the dashboard — the newly captured (still-pending) source shows up
+ * there immediately, and the pipeline keeps running in the background.
  */
 export function CaptureForm({ initialUrl }: { initialUrl: string }) {
+  const router = useRouter();
   const [url, setUrl] = useState(initialUrl);
   const [interestRating, setInterestRating] = useState<number | null>(null);
   const [userNote, setUserNote] = useState('');
@@ -60,44 +62,11 @@ export function CaptureForm({ initialUrl }: { initialUrl: string }) {
         return;
       }
 
-      setStatus('captured');
+      router.push('/dashboard');
     } catch {
       setError('Network error — check your connection and try again');
       setStatus('error');
     }
-  }
-
-  function reset() {
-    setUrl('');
-    setInterestRating(null);
-    setUserNote('');
-    setStatus('idle');
-    setError(null);
-    setExistingSourceId(null);
-  }
-
-  if (status === 'captured') {
-    return (
-      <div className="rounded-lg border border-accent/40 bg-accent/10 p-5 text-center">
-        <p className="text-lg font-medium text-accent">Captured!</p>
-        <p className="mt-1 text-sm text-accent/80">Processing in the background.</p>
-        <div className="mt-4 flex flex-col gap-2">
-          <Link
-            href="/dashboard"
-            className="rounded-md bg-accent px-4 py-3 text-sm font-medium text-background"
-          >
-            View dashboard
-          </Link>
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded-md border border-border px-4 py-3 text-sm font-medium text-foreground"
-          >
-            Capture another
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
