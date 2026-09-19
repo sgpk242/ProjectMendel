@@ -95,45 +95,64 @@ body {
 }
 
 .fermentor-surface {
-  top: calc(var(--broth-surface) - 4px);
-  height: 10px;
+  top: calc(var(--broth-surface) - 5px);
+  height: 14px;
   background: linear-gradient(
     180deg,
-    rgba(255, 240, 180, 0.4) 0%,
-    rgba(255, 225, 130, 0.18) 40%,
+    rgba(255, 240, 180, 0.45) 0%,
+    rgba(255, 225, 130, 0.2) 35%,
     transparent 100%
   );
-  animation: fermentor-agitate 2.5s ease-in-out infinite;
+  animation: fermentor-agitate 2.2s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.fermentor-surface::before,
+.fermentor-surface::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -30px;
+  right: -30px;
+  height: 100%;
 }
 
 .fermentor-surface::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
+  background: repeating-linear-gradient(
     90deg,
-    transparent 0%,
-    rgba(255, 245, 200, 0.25) 15%,
-    transparent 30%,
-    rgba(255, 240, 190, 0.18) 50%,
-    transparent 65%,
-    rgba(255, 245, 200, 0.22) 80%,
-    transparent 100%
+    transparent 0px,
+    rgba(255, 245, 210, 0.22) 35px,
+    transparent 70px
   );
-  animation: fermentor-shimmer 3.5s ease-in-out infinite;
+  animation: fermentor-ripple-a 3.2s ease-in-out infinite;
+}
+
+.fermentor-surface::after {
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0px,
+    rgba(255, 240, 195, 0.16) 50px,
+    transparent 100px
+  );
+  animation: fermentor-ripple-b 2.5s ease-in-out infinite;
 }
 
 @keyframes fermentor-agitate {
   0%, 100% { transform: translateY(0) scaleY(1); }
-  20% { transform: translateY(-1.5px) scaleY(1.4); }
-  45% { transform: translateY(0.8px) scaleY(0.6); }
-  65% { transform: translateY(-1px) scaleY(1.25); }
-  85% { transform: translateY(0.3px) scaleY(0.85); }
+  18% { transform: translateY(-2px) scaleY(1.5); }
+  40% { transform: translateY(1px) scaleY(0.5); }
+  58% { transform: translateY(-1.5px) scaleY(1.4); }
+  78% { transform: translateY(0.5px) scaleY(0.7); }
 }
 
-@keyframes fermentor-shimmer {
-  0%, 100% { transform: translateX(0); opacity: 0.5; }
-  50% { transform: translateX(-10px); opacity: 1; }
+@keyframes fermentor-ripple-a {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(28px); }
+}
+
+@keyframes fermentor-ripple-b {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-20px); }
 }
 
 .fermentor-bubbles {
@@ -161,46 +180,80 @@ body {
   box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.04);
 }
 
-.fermentor-bubble-a { animation: fermentor-rise-a ease-out infinite; }
-.fermentor-bubble-b { animation: fermentor-rise-b ease-out infinite; }
-.fermentor-bubble-c { animation: fermentor-rise-c ease-out infinite; }
+/* Small bubbles: subtle drift (2-3px lateral) — Stokes regime, near-straight */
+.fermentor-bubble-a { animation: fermentor-rise-a linear infinite; }
+.fermentor-bubble-b { animation: fermentor-rise-b linear infinite; }
+/* Medium bubbles: zigzag (6-8px lateral) — vortex shedding */
+.fermentor-bubble-c { animation: fermentor-rise-c linear infinite; }
+.fermentor-bubble-d { animation: fermentor-rise-d linear infinite; }
+/* Large bubbles: wide oscillation (10-14px lateral) — turbulent wake */
+.fermentor-bubble-e { animation: fermentor-rise-e linear infinite; }
 
 @keyframes fermentor-rise-a {
-  0%   { transform: translateY(0) translateX(0) scale(0.1); opacity: 0; }
-  2%   { opacity: 0.7; }
-  30%  { transform: translateY(-30vh) translateX(8px) scale(0.45); opacity: 0.65; }
-  60%  { transform: translateY(-55vh) translateX(-5px) scale(0.72); opacity: 0.6; }
-  85%  { transform: translateY(-78vh) translateX(6px) scale(0.9); opacity: 0.55; }
-  100% { transform: translateY(-95vh) translateX(-2px) scale(1); opacity: 0.5; }
+  0%   { transform: translateY(0) translateX(0) scale(0.08); opacity: 0; }
+  3%   { opacity: 0.65; }
+  25%  { transform: translateY(-22vh) translateX(3px) scale(0.35); }
+  50%  { transform: translateY(-45vh) translateX(-2px) scale(0.58); }
+  75%  { transform: translateY(-68vh) translateX(2px) scale(0.82); opacity: 0.55; }
+  100% { transform: translateY(-95vh) translateX(-1px) scale(1); opacity: 0.5; }
 }
 
 @keyframes fermentor-rise-b {
-  0%   { transform: translateY(0) translateX(0) scale(0.08); opacity: 0; }
-  3%   { opacity: 0.65; }
-  25%  { transform: translateY(-25vh) translateX(-7px) scale(0.4); opacity: 0.6; }
-  55%  { transform: translateY(-52vh) translateX(6px) scale(0.68); opacity: 0.58; }
-  80%  { transform: translateY(-74vh) translateX(-4px) scale(0.88); opacity: 0.52; }
-  100% { transform: translateY(-92vh) translateX(3px) scale(1); opacity: 0.48; }
+  0%   { transform: translateY(0) translateX(0) scale(0.1); opacity: 0; }
+  4%   { opacity: 0.6; }
+  20%  { transform: translateY(-18vh) translateX(-3px) scale(0.32); }
+  45%  { transform: translateY(-42vh) translateX(2px) scale(0.55); }
+  70%  { transform: translateY(-65vh) translateX(-2px) scale(0.78); opacity: 0.52; }
+  100% { transform: translateY(-93vh) translateX(1px) scale(1); opacity: 0.48; }
 }
 
 @keyframes fermentor-rise-c {
-  0%   { transform: translateY(0) translateX(0) scale(0.12); opacity: 0; }
-  4%   { opacity: 0.6; }
-  35%  { transform: translateY(-32vh) translateX(5px) scale(0.48); opacity: 0.58; }
-  58%  { transform: translateY(-50vh) translateX(-6px) scale(0.7); opacity: 0.55; }
-  82%  { transform: translateY(-72vh) translateX(4px) scale(0.86); opacity: 0.5; }
-  100% { transform: translateY(-88vh) translateX(-3px) scale(1); opacity: 0.45; }
+  0%   { transform: translateY(0) translateX(0) scale(0.08); opacity: 0; }
+  3%   { opacity: 0.7; }
+  16%  { transform: translateY(-14vh) translateX(7px) scale(0.3); }
+  33%  { transform: translateY(-30vh) translateX(-5px) scale(0.48); }
+  50%  { transform: translateY(-46vh) translateX(8px) scale(0.65); }
+  67%  { transform: translateY(-62vh) translateX(-6px) scale(0.8); }
+  83%  { transform: translateY(-78vh) translateX(7px) scale(0.92); opacity: 0.55; }
+  100% { transform: translateY(-97vh) translateX(-3px) scale(1); opacity: 0.5; }
+}
+
+@keyframes fermentor-rise-d {
+  0%   { transform: translateY(0) translateX(0) scale(0.1); opacity: 0; }
+  4%   { opacity: 0.65; }
+  18%  { transform: translateY(-16vh) translateX(-6px) scale(0.32); }
+  35%  { transform: translateY(-32vh) translateX(7px) scale(0.5); }
+  52%  { transform: translateY(-48vh) translateX(-8px) scale(0.67); }
+  70%  { transform: translateY(-65vh) translateX(6px) scale(0.82); opacity: 0.55; }
+  88%  { transform: translateY(-82vh) translateX(-5px) scale(0.94); opacity: 0.5; }
+  100% { transform: translateY(-96vh) translateX(2px) scale(1); opacity: 0.48; }
+}
+
+@keyframes fermentor-rise-e {
+  0%   { transform: translateY(0) translateX(0) scale(0.06); opacity: 0; }
+  2%   { opacity: 0.75; }
+  12%  { transform: translateY(-10vh) translateX(12px) scale(0.25); }
+  25%  { transform: translateY(-22vh) translateX(-10px) scale(0.42); }
+  37%  { transform: translateY(-34vh) translateX(14px) scale(0.56); }
+  50%  { transform: translateY(-46vh) translateX(-11px) scale(0.68); }
+  62%  { transform: translateY(-58vh) translateX(13px) scale(0.78); }
+  75%  { transform: translateY(-70vh) translateX(-12px) scale(0.88); opacity: 0.6; }
+  87%  { transform: translateY(-82vh) translateX(10px) scale(0.95); opacity: 0.55; }
+  100% { transform: translateY(-98vh) translateX(-4px) scale(1); opacity: 0.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .fermentor-bubble-a,
   .fermentor-bubble-b,
-  .fermentor-bubble-c {
+  .fermentor-bubble-c,
+  .fermentor-bubble-d,
+  .fermentor-bubble-e {
     animation: none;
     opacity: 0.3;
   }
   .fermentor-surface,
-  .fermentor-surface::before {
+  .fermentor-surface::before,
+  .fermentor-surface::after {
     animation: none;
   }
 }
