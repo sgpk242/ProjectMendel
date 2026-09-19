@@ -88,7 +88,7 @@ export function FilterChips({ topics }: { topics: Topic[] }) {
     const params = new URLSearchParams(searchParams.toString());
     chip.remove(params);
     params.delete('page');
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   return (

@@ -38,7 +38,7 @@ export function FilterSidebar({ topics }: { topics: Topic[] }) {
     const params = new URLSearchParams(searchParams.toString());
     mutate(params);
     params.delete('page');
-    router.replace(`${pathname}?${params.toString()}`);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }
 
   function toggleCsv(key: string, value: string) {
@@ -69,7 +69,7 @@ export function FilterSidebar({ topics }: { topics: Topic[] }) {
         <h2 className="text-sm font-semibold tracking-tight">Filters</h2>
         <button
           type="button"
-          onClick={() => router.replace(pathname)}
+          onClick={() => router.replace(pathname, { scroll: false })}
           className="text-xs text-muted transition-colors hover:text-foreground"
         >
           Clear all
