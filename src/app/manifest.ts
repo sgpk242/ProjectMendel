@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
+    id: "/dashboard",
     name: "Mendel",
     short_name: "Mendel",
     description: "Personal research intelligence — capture, organize, and interrogate sources.",
@@ -32,6 +33,7 @@ export default function manifest(): MetadataRoute.Manifest {
     share_target: {
       action: "/capture",
       method: "GET",
+      enctype: "application/x-www-form-urlencoded",
       params: {
         url: "url",
         title: "title",
