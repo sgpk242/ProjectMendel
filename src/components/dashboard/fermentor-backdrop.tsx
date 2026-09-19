@@ -5,7 +5,9 @@
  * hydration.
  *
  * Bubble positions/sizes/timings are generated from a deterministic seeded
- * LCG so server renders are stable.
+ * LCG so server renders are stable. Bubbles are positioned with `bottom`
+ * inside `.fermentor-broth` (which has `overflow: hidden`), so they
+ * naturally clip at the broth surface as they rise — no opacity fade-out.
  *
  * Layout is driven by `--broth-surface` (defined on `.fermentor-root` in
  * globals.css) — the distance from the top of the page down to the top of
@@ -14,7 +16,7 @@
 
 type Bubble = {
   left: string;
-  top: string;
+  bottom: string;
   size: number;
   delay: string;
   duration: string;
@@ -36,15 +38,15 @@ function generateBubbles(count: number): Bubble[] {
 
   for (let i = 0; i < count; i++) {
     const left = (rand() * 96 + 2).toFixed(1);
-    const top = (rand() * 80 + 3).toFixed(1);
-    const size = Math.round(rand() * 18 + 6);
-    const delay = (rand() * 8).toFixed(1);
-    const duration = (rand() * 4 + 5).toFixed(1);
+    const bottom = (rand() * 40 + 2).toFixed(1);
+    const size = +(rand() * 24 + 4).toFixed(1);
+    const delay = (rand() * 12).toFixed(1);
+    const duration = (rand() * 5 + 5).toFixed(1);
     const variant = variants[Math.floor(rand() * 3)];
 
     bubbles.push({
       left: `${left}%`,
-      top: `${top}%`,
+      bottom: `${bottom}%`,
       size,
       delay: `${delay}s`,
       duration: `${duration}s`,
@@ -55,7 +57,7 @@ function generateBubbles(count: number): Bubble[] {
   return bubbles;
 }
 
-const BUBBLES = generateBubbles(55);
+const BUBBLES = generateBubbles(120);
 
 export function FermentorBackdrop() {
   return (
@@ -69,7 +71,7 @@ export function FermentorBackdrop() {
               className={`fermentor-bubble fermentor-bubble-${b.variant}`}
               style={{
                 left: b.left,
-                top: b.top,
+                bottom: b.bottom,
                 width: b.size,
                 height: b.size,
                 animationDelay: b.delay,

@@ -95,14 +95,45 @@ body {
 }
 
 .fermentor-surface {
-  top: calc(var(--broth-surface) - 2px);
-  height: 4px;
+  top: calc(var(--broth-surface) - 4px);
+  height: 10px;
   background: linear-gradient(
     180deg,
-    rgba(255, 230, 160, 0.35) 0%,
-    rgba(255, 220, 120, 0.12) 50%,
+    rgba(255, 240, 180, 0.4) 0%,
+    rgba(255, 225, 130, 0.18) 40%,
     transparent 100%
   );
+  animation: fermentor-agitate 2.5s ease-in-out infinite;
+}
+
+.fermentor-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 245, 200, 0.25) 15%,
+    transparent 30%,
+    rgba(255, 240, 190, 0.18) 50%,
+    transparent 65%,
+    rgba(255, 245, 200, 0.22) 80%,
+    transparent 100%
+  );
+  animation: fermentor-shimmer 3.5s ease-in-out infinite;
+}
+
+@keyframes fermentor-agitate {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  20% { transform: translateY(-1.5px) scaleY(1.4); }
+  45% { transform: translateY(0.8px) scaleY(0.6); }
+  65% { transform: translateY(-1px) scaleY(1.25); }
+  85% { transform: translateY(0.3px) scaleY(0.85); }
+}
+
+@keyframes fermentor-shimmer {
+  0%, 100% { transform: translateX(0); opacity: 0.5; }
+  50% { transform: translateX(-10px); opacity: 1; }
 }
 
 .fermentor-bubbles {
@@ -130,35 +161,35 @@ body {
   box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.04);
 }
 
-.fermentor-bubble-a { animation: fermentor-rise-a ease-in-out infinite; }
-.fermentor-bubble-b { animation: fermentor-rise-b ease-in-out infinite; }
-.fermentor-bubble-c { animation: fermentor-rise-c ease-in-out infinite; }
+.fermentor-bubble-a { animation: fermentor-rise-a ease-out infinite; }
+.fermentor-bubble-b { animation: fermentor-rise-b ease-out infinite; }
+.fermentor-bubble-c { animation: fermentor-rise-c ease-out infinite; }
 
 @keyframes fermentor-rise-a {
-  0%   { transform: translateY(0) translateX(0) scale(0.7); opacity: 0; }
-  8%   { opacity: 0.75; }
-  30%  { transform: translateY(-25px) translateX(4px) scale(0.88); }
-  55%  { transform: translateY(-50px) translateX(-3px) scale(0.95); }
-  80%  { transform: translateY(-75px) translateX(3px) scale(1); opacity: 0.5; }
-  100% { transform: translateY(-95px) translateX(-1px) scale(1.05); opacity: 0; }
+  0%   { transform: translateY(0) translateX(0) scale(0.1); opacity: 0; }
+  2%   { opacity: 0.7; }
+  30%  { transform: translateY(-30vh) translateX(8px) scale(0.45); opacity: 0.65; }
+  60%  { transform: translateY(-55vh) translateX(-5px) scale(0.72); opacity: 0.6; }
+  85%  { transform: translateY(-78vh) translateX(6px) scale(0.9); opacity: 0.55; }
+  100% { transform: translateY(-95vh) translateX(-2px) scale(1); opacity: 0.5; }
 }
 
 @keyframes fermentor-rise-b {
-  0%   { transform: translateY(0) translateX(0) scale(0.75); opacity: 0; }
-  10%  { opacity: 0.7; }
-  35%  { transform: translateY(-28px) translateX(-4px) scale(0.9); }
-  58%  { transform: translateY(-55px) translateX(3px) scale(0.96); }
-  82%  { transform: translateY(-80px) translateX(-2px) scale(1.02); opacity: 0.45; }
-  100% { transform: translateY(-100px) translateX(1px) scale(1.07); opacity: 0; }
+  0%   { transform: translateY(0) translateX(0) scale(0.08); opacity: 0; }
+  3%   { opacity: 0.65; }
+  25%  { transform: translateY(-25vh) translateX(-7px) scale(0.4); opacity: 0.6; }
+  55%  { transform: translateY(-52vh) translateX(6px) scale(0.68); opacity: 0.58; }
+  80%  { transform: translateY(-74vh) translateX(-4px) scale(0.88); opacity: 0.52; }
+  100% { transform: translateY(-92vh) translateX(3px) scale(1); opacity: 0.48; }
 }
 
 @keyframes fermentor-rise-c {
-  0%   { transform: translateY(0) scale(0.78); opacity: 0; }
-  12%  { opacity: 0.65; }
-  32%  { transform: translateY(-22px) translateX(2px) scale(0.87); }
-  60%  { transform: translateY(-52px) translateX(-1px) scale(0.95); }
-  85%  { transform: translateY(-78px) translateX(1px) scale(1.01); opacity: 0.4; }
-  100% { transform: translateY(-92px) scale(1.04); opacity: 0; }
+  0%   { transform: translateY(0) translateX(0) scale(0.12); opacity: 0; }
+  4%   { opacity: 0.6; }
+  35%  { transform: translateY(-32vh) translateX(5px) scale(0.48); opacity: 0.58; }
+  58%  { transform: translateY(-50vh) translateX(-6px) scale(0.7); opacity: 0.55; }
+  82%  { transform: translateY(-72vh) translateX(4px) scale(0.86); opacity: 0.5; }
+  100% { transform: translateY(-88vh) translateX(-3px) scale(1); opacity: 0.45; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -167,5 +198,9 @@ body {
   .fermentor-bubble-c {
     animation: none;
     opacity: 0.3;
+  }
+  .fermentor-surface,
+  .fermentor-surface::before {
+    animation: none;
   }
 }
