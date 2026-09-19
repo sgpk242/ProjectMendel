@@ -11,10 +11,8 @@
  *   shedding; large (>20px) oscillate widely from turbulent wake instability.
  * - Bubbles grow (scale 0.06→1) as they rise (gas expansion as hydrostatic
  *   pressure drops), and are near-white/high-contrast against the amber broth.
- * - A soft "eddies" layer drifts/rotates slowly beneath everything for
- *   large-scale churn.
- * - A dense foam band of near-white bubbles sits at the surface; each pops
- *   and jitters on its own randomized period, so the froth never loops.
+ * - A soft "eddies" layer drifts/rotates beneath everything for large-scale
+ *   swirling churn.
  * - The broth's overflow:hidden clips rising bubbles at the surface.
  *
  * Layout is driven by `--broth-surface` (defined on `.fermentor-root` in
@@ -28,15 +26,6 @@ type Bubble = {
   delay: string;
   duration: string;
   variant: 'a' | 'b' | 'c' | 'd' | 'e';
-};
-
-type Foam = {
-  left: string;
-  top: string;
-  size: number;
-  delay: string;
-  duration: string;
-  variant: 'p' | 'q' | 'r';
 };
 
 function seededRandom(seed: number): () => number {
@@ -82,36 +71,7 @@ function generateBubbles(count: number): Bubble[] {
   return bubbles;
 }
 
-function generateFoam(count: number): Foam[] {
-  const rand = seededRandom(1337);
-  const variants: Array<Foam['variant']> = ['p', 'q', 'r'];
-  const foam: Foam[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const left = +(rand() * 100).toFixed(1);
-    // Power bias clusters foam tight against the very top (the surface).
-    const top = +(Math.pow(rand(), 1.6) * 100).toFixed(1);
-    const size = +(3 + rand() * 11).toFixed(1);
-    // Non-uniform periods so hundreds of foam bubbles never sync into a loop.
-    const duration = +(1.8 + rand() * 3.4).toFixed(2);
-    const delay = +(rand() * 6).toFixed(2);
-    const variant = variants[Math.floor(rand() * 3)];
-
-    foam.push({
-      left: `${left}%`,
-      top: `${top}%`,
-      size,
-      delay: `${delay}s`,
-      duration: `${duration}s`,
-      variant,
-    });
-  }
-
-  return foam;
-}
-
 const BUBBLES = generateBubbles(2500);
-const FOAM = generateFoam(450);
 
 export function FermentorBackdrop() {
   return (
@@ -131,22 +91,6 @@ export function FermentorBackdrop() {
                 height: b.size,
                 animationDelay: b.delay,
                 animationDuration: b.duration,
-              }}
-            />
-          ))}
-        </div>
-        <div className="fermentor-foam-band">
-          {FOAM.map((f, i) => (
-            <span
-              key={i}
-              className={`fermentor-foam fermentor-foam-${f.variant}`}
-              style={{
-                left: f.left,
-                top: f.top,
-                width: f.size,
-                height: f.size,
-                animationDelay: f.delay,
-                animationDuration: f.duration,
               }}
             />
           ))}

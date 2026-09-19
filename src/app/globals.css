@@ -109,59 +109,62 @@ body {
 
 @keyframes fermentor-swirl {
   0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
-  33%  { transform: translate(2%, -3%) scale(1.06) rotate(1deg); }
-  66%  { transform: translate(-2%, 2%) scale(1.03) rotate(-1deg); }
-  100% { transform: translate(1%, -4%) scale(1.09) rotate(0.5deg); }
+  33%  { transform: translate(5%, -6%) scale(1.12) rotate(3deg); }
+  66%  { transform: translate(-4%, 4%) scale(1.06) rotate(-3deg); }
+  100% { transform: translate(3%, -7%) scale(1.15) rotate(2deg); }
 }
 
-/* Surface meniscus + ripples. Three ripple layers drift at non-harmonic
- * periods (2.3 / 3.7 / 5.1s) in alternating directions; their combined
- * least-common-multiple is long enough that the surface never reads as an
- * obvious loop. */
+/* Surface churn. A tall band of light streaks that sweep hard sideways,
+ * bob vertically and swell/collapse — vigorous, like the roiling top of a
+ * stirred bioreactor. Three layers at non-harmonic periods (1.7 / 2.6 /
+ * 3.5s) drift opposite ways so the surface never reads as an obvious loop. */
 .fermentor-surface {
-  top: calc(var(--broth-surface) - 6px);
-  height: 16px;
+  top: calc(var(--broth-surface) - 12px);
+  height: 28px;
   overflow: hidden;
   background: linear-gradient(
     180deg,
-    rgba(255, 244, 195, 0.5) 0%,
-    rgba(255, 228, 140, 0.2) 40%,
+    rgba(255, 244, 195, 0.55) 0%,
+    rgba(255, 228, 140, 0.25) 45%,
     transparent 100%
   );
 }
 
 .fermentor-ripple {
   position: absolute;
-  top: 0;
-  left: -40px;
-  right: -40px;
-  height: 100%;
+  top: -4px;
+  left: -60px;
+  right: -60px;
+  height: calc(100% + 8px);
 }
 
 .fermentor-ripple-1 {
-  background: repeating-linear-gradient(90deg, transparent 0px, rgba(255, 248, 220, 0.26) 30px, transparent 62px);
-  animation: fermentor-ripple-1 2.3s ease-in-out infinite;
+  background: repeating-linear-gradient(96deg, transparent 0px, rgba(255, 248, 220, 0.34) 26px, transparent 58px);
+  animation: fermentor-ripple-1 1.7s ease-in-out infinite;
 }
 .fermentor-ripple-2 {
-  background: repeating-linear-gradient(90deg, transparent 0px, rgba(255, 242, 200, 0.2) 46px, transparent 92px);
-  animation: fermentor-ripple-2 3.7s ease-in-out infinite;
+  background: repeating-linear-gradient(84deg, transparent 0px, rgba(255, 242, 200, 0.28) 44px, transparent 90px);
+  animation: fermentor-ripple-2 2.6s ease-in-out infinite;
 }
 .fermentor-ripple-3 {
-  background: repeating-linear-gradient(90deg, transparent 0px, rgba(255, 252, 230, 0.15) 68px, transparent 130px);
-  animation: fermentor-ripple-3 5.1s ease-in-out infinite;
+  background: repeating-linear-gradient(92deg, transparent 0px, rgba(255, 252, 230, 0.2) 66px, transparent 128px);
+  animation: fermentor-ripple-3 3.5s ease-in-out infinite;
 }
 
 @keyframes fermentor-ripple-1 {
-  0%, 100% { transform: translateX(0) scaleY(1); }
-  50% { transform: translateX(34px) scaleY(1.35); }
+  0%   { transform: translateX(-70px) translateY(2px) scaleY(0.7); }
+  50%  { transform: translateX(70px) translateY(-3px) scaleY(1.6); }
+  100% { transform: translateX(-70px) translateY(2px) scaleY(0.7); }
 }
 @keyframes fermentor-ripple-2 {
-  0%, 100% { transform: translateX(0) scaleY(1); }
-  50% { transform: translateX(-26px) scaleY(0.75); }
+  0%   { transform: translateX(60px) translateY(-2px) scaleY(1.5); }
+  50%  { transform: translateX(-60px) translateY(3px) scaleY(0.6); }
+  100% { transform: translateX(60px) translateY(-2px) scaleY(1.5); }
 }
 @keyframes fermentor-ripple-3 {
-  0%, 100% { transform: translateX(0) scaleY(1.1); }
-  50% { transform: translateX(18px) scaleY(0.85); }
+  0%   { transform: translateX(-45px) translateY(1px) scaleY(1.3); }
+  50%  { transform: translateX(50px) translateY(-2px) scaleY(0.8); }
+  100% { transform: translateX(-45px) translateY(1px) scaleY(1.3); }
 }
 
 .fermentor-bubbles {
@@ -254,68 +257,12 @@ body {
   100% { transform: translateY(-100vh) translateX(-6px) scale(1); opacity: 0.65; }
 }
 
-/* Surface foam: a dense band of near-white bubbles clustered at the broth
- * surface. Each has its own randomized period/delay, so hundreds of them
- * jitter and pop with no collective loop — this is what reads as froth. */
-.fermentor-foam-band {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 15%;
-}
-
-.fermentor-foam {
-  position: absolute;
-  border-radius: 9999px;
-  background: radial-gradient(
-    circle at 36% 30%,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(255, 253, 246, 0.72) 45%,
-    rgba(255, 246, 215, 0.32) 75%,
-    transparent 88%
-  );
-  border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-.fermentor-foam-p { animation: fermentor-foam-p linear infinite; }
-.fermentor-foam-q { animation: fermentor-foam-q linear infinite; }
-.fermentor-foam-r { animation: fermentor-foam-r linear infinite; }
-
-@keyframes fermentor-foam-p {
-  0%   { transform: translate(0, 0) scale(0.9); opacity: 0.55; }
-  22%  { transform: translate(1px, -1px) scale(1.18); opacity: 1; }
-  47%  { transform: translate(-1px, 1px) scale(0.85); opacity: 0.72; }
-  71%  { transform: translate(2px, 0) scale(1.12); opacity: 0.95; }
-  100% { transform: translate(0, 0) scale(0.9); opacity: 0.55; }
-}
-
-@keyframes fermentor-foam-q {
-  0%   { transform: translate(0, 0) scale(1.05); opacity: 0.8; }
-  28%  { transform: translate(-2px, 1px) scale(0.88); opacity: 0.6; }
-  55%  { transform: translate(1px, -1px) scale(1.2); opacity: 1; }
-  80%  { transform: translate(-1px, 0) scale(0.95); opacity: 0.75; }
-  100% { transform: translate(0, 0) scale(1.05); opacity: 0.8; }
-}
-
-/* Popping foam: grows in, sits, then bursts and vanishes. */
-@keyframes fermentor-foam-r {
-  0%   { transform: scale(0.3); opacity: 0; }
-  14%  { transform: scale(1.15); opacity: 1; }
-  58%  { transform: scale(1); opacity: 0.85; }
-  78%  { transform: scale(1.3); opacity: 0; }
-  100% { transform: scale(0.3); opacity: 0; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .fermentor-bubble-a,
   .fermentor-bubble-b,
   .fermentor-bubble-c,
   .fermentor-bubble-d,
-  .fermentor-bubble-e,
-  .fermentor-foam-p,
-  .fermentor-foam-q,
-  .fermentor-foam-r {
+  .fermentor-bubble-e {
     animation: none;
     opacity: 0.35;
   }
