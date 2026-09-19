@@ -4,11 +4,11 @@ Personal research intelligence. Capture URLs, ingest their full content, organiz
 them in a searchable dashboard, and interrogate the corpus through an LLM chat
 interface grounded in what you have read.
 
-**Status: Phase 3** — ingest pipeline, searchable/filterable dashboard, quick
+**Status: Phase 3+** — ingest pipeline, searchable/filterable dashboard, quick
 actions, collections, rich source detail view, plus three new dashboard tiles:
 funding opportunities tracker, product idea radar (auto-extracted during
-ingestion), and a weekly papers feed (OpenAlex + Jina Search). Chat is still a
-stub.
+ingestion), and a weekly papers feed (OpenAlex + Jina Search). Mobile capture
+via Android share sheet (PWA). Chat is still a stub.
 
 ## Stack
 
@@ -163,6 +163,39 @@ Three intelligence tiles sit above the source list on `/dashboard`:
 | **Product Idea Radar** | Biomanufacturing compounds auto-extracted by the LLM during ingestion. Visible per-source on the detail page; appears on the dashboard only once you assign an interest rating (1-5). | `product_ideas` + `source_product_ideas` junction |
 | **New Papers Feed** | Discovers papers (OpenAlex) and news (Jina Search) matching your queries. Queries can be custom or bulk-imported from existing topics. Manual refresh trigger; items are triaged and one-click ingested into the corpus. Full view at `/feed`. | `feed_queries` + `feed_items` tables |
 
+## Mobile capture (Android)
+
+Mendel is a PWA installable from Chrome on Android. Once installed, it appears
+in the Android share sheet so you can capture any URL in two taps without leaving
+your browser.
+
+**Install:**
+1. Open Mendel in Chrome on your phone and sign in
+2. Tap the browser menu → **Add to Home Screen**
+3. The Mendel icon now appears in your home screen and in the Android share sheet
+
+**How it works:**
+- Tapping "Mendel" in the share sheet opens the `/capture` page with the URL
+  pre-filled
+- Submit with an optional interest rating and note — the server responds
+  immediately (202) and runs the full ingest pipeline in the background
+- You're redirected to the dashboard where the newly captured source appears
+  with `ingest_status: pending`, then updates to `complete` as the pipeline
+  finishes
+
+**Local dev testing on a phone:** run the dev server and expose it through
+a tunnel (e.g. ngrok):
+
+```powershell
+ngrok http 3000
+```
+
+Open the ngrok URL in Chrome on your phone. The service worker handles ngrok's
+free-tier interstitial for the manifest fetch automatically.
+
+`next.config.ts` includes `allowedDevOrigins` for `*.ngrok-free.dev` and
+`*.ngrok-free.app` so HMR works through the tunnel.
+
 ## Roadmap
 
 - **Phase 0** — scaffolding, schema, auth. ✅
@@ -171,5 +204,7 @@ Three intelligence tiles sit above the source list on `/dashboard`:
   rich source detail view. ✅
 - **Phase 3** — dashboard tiles: funding tracker, product idea radar (auto-extracted
   compounds), weekly papers feed (OpenAlex + Jina Search). ✅
+- **Phase 3+** — mobile capture via Android share sheet (PWA + Web Share Target API),
+  async ingest for instant mobile response, Wikipedia descriptions on product pages. ✅
 - **Phase 4** — RAG chat with citations, hybrid keyword + vector retrieval.
 - **Phase 5** — contradiction detection, deeper collection tooling.
