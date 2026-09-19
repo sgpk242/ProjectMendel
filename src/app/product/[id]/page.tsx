@@ -4,6 +4,7 @@ import { DelistButton } from '@/components/product/delist-button';
 import { ProductNoteEditor } from '@/components/product/product-note-editor';
 import { PageShell } from '@/components/ui/page-shell';
 import { createClient } from '@/lib/supabase/server';
+import { fetchWikipediaExtract } from '@/lib/wikipedia';
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -36,6 +37,30 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
 
   const referencingSources = await loadReferencingSources(supabase, id);
 
+  // Lazy-fetch and cache the Wikipedia extract on first visit.
+  // null = never looked up; '' = looked up, nothing found; any other string = cached extract.
+  let wikiExtract: string | null = product.wikipedia_extract;
+  let wikiUrl: string | null = product.wikipedia_url;
+
+  if (product.wikipedia_extract === null) {
+    const result = await fetchWikipediaExtract(product.name);
+    if (result) {
+      wikiExtract = result.extract;
+      wikiUrl = result.url;
+      await supabase
+        .from('product_ideas')
+        .update({ wikipedia_extract: result.extract, wikipedia_url: result.url })
+        .eq('id', id);
+    } else {
+      wikiExtract = '';
+      wikiUrl = null;
+      await supabase
+        .from('product_ideas')
+        .update({ wikipedia_extract: '' })
+        .eq('id', id);
+    }
+  }
+
   return (
     <PageShell email={user?.email}>
       <div className="flex items-start justify-between gap-4">
@@ -46,9 +71,28 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
         <DelistButton productId={product.id} />
       </div>
 
+      {wikiExtract ? (
+        <div className="mt-6">
+          <h2 className="flex items-baseline gap-2 text-sm font-semibold tracking-tight text-muted">
+            Description
+            {wikiUrl ? (
+              <a
+                href={wikiUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs font-normal text-accent hover:underline"
+              >
+                Wikipedia ↗
+              </a>
+            ) : null}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-foreground">{wikiExtract}</p>
+        </div>
+      ) : null}
+
       <div className="mt-6">
         <h2 className="text-sm font-semibold tracking-tight text-muted">
-          Papers referencing this product
+          Papers referencing this compound
         </h2>
         <div className="mt-2">
           {referencingSources.length > 0 ? (
@@ -65,7 +109,7 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted">No papers reference this product.</p>
+            <p className="text-sm text-muted">No papers reference this compound.</p>
           )}
         </div>
       </div>
@@ -83,7 +127,7 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
 async function loadProduct(supabase: Supabase, id: string) {
   const { data } = await supabase
     .from('product_ideas')
-    .select('id, name, notes')
+    .select('id, name, notes, wikipedia_extract, wikipedia_url')
     .eq('id', id)
     .maybeSingle();
   return data;

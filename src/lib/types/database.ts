@@ -319,6 +319,8 @@ export type Database = {
           description: string | null;
           interest_rating: number | null;
           notes: string | null;
+          wikipedia_extract: string | null;
+          wikipedia_url: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -329,6 +331,8 @@ export type Database = {
           description?: string | null;
           interest_rating?: number | null;
           notes?: string | null;
+          wikipedia_extract?: string | null;
+          wikipedia_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -339,6 +343,8 @@ export type Database = {
           description?: string | null;
           interest_rating?: number | null;
           notes?: string | null;
+          wikipedia_extract?: string | null;
+          wikipedia_url?: string | null;
           created_at?: string;
           updated_at?: string;
         };
