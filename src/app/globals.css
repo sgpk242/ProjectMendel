@@ -44,7 +44,7 @@ body {
 
 .fermentor-metal,
 .fermentor-broth,
-.fermentor-froth {
+.fermentor-surface {
   position: absolute;
   left: 0;
   right: 0;
@@ -55,19 +55,30 @@ body {
   height: var(--broth-surface);
   background:
     repeating-linear-gradient(
-      100deg,
-      rgba(255, 255, 255, 0.035) 0px,
-      rgba(255, 255, 255, 0.035) 1px,
+      90deg,
+      rgba(255, 255, 255, 0.03) 0px,
       transparent 1px,
-      transparent 7px
+      transparent 2px
+    ),
+    linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.07) 12%,
+      transparent 25%,
+      rgba(255, 255, 255, 0.05) 45%,
+      transparent 58%,
+      rgba(255, 255, 255, 0.06) 78%,
+      transparent 90%
     ),
     linear-gradient(
       180deg,
-      #565d64 0%,
-      #6e767e 20%,
-      #565d64 48%,
-      #454b51 78%,
-      #363b40 100%
+      #6b737b 0%,
+      #838d97 18%,
+      #95a0aa 35%,
+      #9eaab5 50%,
+      #8a96a1 65%,
+      #79838d 80%,
+      #676f77 100%
     );
 }
 
@@ -75,33 +86,23 @@ body {
   top: var(--broth-surface);
   bottom: 0;
   overflow: hidden;
-  background-color: #9c631c;
+  background-color: #c89a16;
   background-image:
-    radial-gradient(ellipse 60% 30% at 20% 15%, rgba(255, 255, 255, 0.05), transparent 70%),
-    radial-gradient(ellipse 50% 25% at 80% 55%, rgba(0, 0, 0, 0.08), transparent 70%),
-    radial-gradient(ellipse 55% 30% at 35% 85%, rgba(0, 0, 0, 0.06), transparent 70%);
+    radial-gradient(ellipse 80% 40% at 22% 18%, rgba(255, 230, 120, 0.12), transparent 55%),
+    radial-gradient(ellipse 60% 35% at 78% 55%, rgba(180, 140, 20, 0.10), transparent 50%),
+    radial-gradient(ellipse 70% 30% at 45% 80%, rgba(160, 120, 10, 0.08), transparent 55%);
+  box-shadow: 0 -2px 8px rgba(255, 220, 140, 0.3);
 }
 
-.fermentor-froth {
-  top: calc(var(--broth-surface) - 9px);
-  height: 18px;
-  background-image:
-    radial-gradient(circle 2.5px at 8% 45%, rgba(255, 244, 222, 0.9), transparent 65%),
-    radial-gradient(circle 3.5px at 24% 55%, rgba(255, 244, 222, 0.75), transparent 65%),
-    radial-gradient(circle 2px at 42% 40%, rgba(255, 244, 222, 0.85), transparent 65%),
-    radial-gradient(circle 3px at 61% 58%, rgba(255, 244, 222, 0.7), transparent 65%),
-    radial-gradient(circle 2.5px at 79% 45%, rgba(255, 244, 222, 0.85), transparent 65%),
-    radial-gradient(circle 3px at 93% 55%, rgba(255, 244, 222, 0.7), transparent 65%),
-    linear-gradient(180deg, rgba(240, 210, 160, 0.35) 0%, rgba(156, 99, 28, 0) 100%);
-  background-repeat: repeat-x;
-  background-size:
-    140px 18px,
-    140px 18px,
-    140px 18px,
-    140px 18px,
-    140px 18px,
-    140px 18px,
-    100% 100%;
+.fermentor-surface {
+  top: calc(var(--broth-surface) - 2px);
+  height: 4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 230, 160, 0.35) 0%,
+    rgba(255, 220, 120, 0.12) 50%,
+    transparent 100%
+  );
 }
 
 .fermentor-bubbles {
@@ -112,35 +113,59 @@ body {
 .fermentor-bubble {
   position: absolute;
   border-radius: 9999px;
-  background: radial-gradient(
-    circle at 35% 30%,
-    rgba(255, 240, 210, 0.9),
-    rgba(255, 205, 130, 0.25) 60%,
-    transparent 75%
-  );
-  animation: fermentor-rise 6s ease-in infinite;
+  background:
+    radial-gradient(
+      circle at 32% 25%,
+      rgba(255, 255, 255, 0.55) 0%,
+      rgba(255, 255, 255, 0.10) 30%,
+      rgba(255, 255, 255, 0.02) 50%,
+      transparent 65%
+    ),
+    radial-gradient(
+      circle at 68% 75%,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 25%
+    );
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 -1px 2px rgba(255, 255, 255, 0.04);
 }
 
-@keyframes fermentor-rise {
-  0% {
-    transform: translateY(0) scale(0.85);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.55;
-  }
-  80% {
-    opacity: 0.4;
-  }
-  100% {
-    transform: translateY(-24px) scale(1);
-    opacity: 0;
-  }
+.fermentor-bubble-a { animation: fermentor-rise-a ease-in-out infinite; }
+.fermentor-bubble-b { animation: fermentor-rise-b ease-in-out infinite; }
+.fermentor-bubble-c { animation: fermentor-rise-c ease-in-out infinite; }
+
+@keyframes fermentor-rise-a {
+  0%   { transform: translateY(0) translateX(0) scale(0.7); opacity: 0; }
+  8%   { opacity: 0.75; }
+  30%  { transform: translateY(-25px) translateX(4px) scale(0.88); }
+  55%  { transform: translateY(-50px) translateX(-3px) scale(0.95); }
+  80%  { transform: translateY(-75px) translateX(3px) scale(1); opacity: 0.5; }
+  100% { transform: translateY(-95px) translateX(-1px) scale(1.05); opacity: 0; }
+}
+
+@keyframes fermentor-rise-b {
+  0%   { transform: translateY(0) translateX(0) scale(0.75); opacity: 0; }
+  10%  { opacity: 0.7; }
+  35%  { transform: translateY(-28px) translateX(-4px) scale(0.9); }
+  58%  { transform: translateY(-55px) translateX(3px) scale(0.96); }
+  82%  { transform: translateY(-80px) translateX(-2px) scale(1.02); opacity: 0.45; }
+  100% { transform: translateY(-100px) translateX(1px) scale(1.07); opacity: 0; }
+}
+
+@keyframes fermentor-rise-c {
+  0%   { transform: translateY(0) scale(0.78); opacity: 0; }
+  12%  { opacity: 0.65; }
+  32%  { transform: translateY(-22px) translateX(2px) scale(0.87); }
+  60%  { transform: translateY(-52px) translateX(-1px) scale(0.95); }
+  85%  { transform: translateY(-78px) translateX(1px) scale(1.01); opacity: 0.4; }
+  100% { transform: translateY(-92px) scale(1.04); opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fermentor-bubble {
+  .fermentor-bubble-a,
+  .fermentor-bubble-b,
+  .fermentor-bubble-c {
     animation: none;
-    opacity: 0.35;
+    opacity: 0.3;
   }
 }
