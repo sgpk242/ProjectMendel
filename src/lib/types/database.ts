@@ -327,6 +327,9 @@ export type Database = {
           notes: string | null;
           wikipedia_extract: string | null;
           wikipedia_url: string | null;
+          pubchem_cid: number | null;
+          canonical_name: string | null;
+          synonyms: string[];
           created_at: string;
           updated_at: string;
         };
@@ -339,6 +342,9 @@ export type Database = {
           notes?: string | null;
           wikipedia_extract?: string | null;
           wikipedia_url?: string | null;
+          pubchem_cid?: number | null;
+          canonical_name?: string | null;
+          synonyms?: string[];
           created_at?: string;
           updated_at?: string;
         };
@@ -351,8 +357,36 @@ export type Database = {
           notes?: string | null;
           wikipedia_extract?: string | null;
           wikipedia_url?: string | null;
+          pubchem_cid?: number | null;
+          canonical_name?: string | null;
+          synonyms?: string[];
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      compound_lookups: {
+        Row: {
+          query_name: string;
+          pubchem_cid: number | null;
+          canonical_name: string | null;
+          synonyms: string[];
+          looked_up_at: string;
+        };
+        Insert: {
+          query_name: string;
+          pubchem_cid?: number | null;
+          canonical_name?: string | null;
+          synonyms?: string[];
+          looked_up_at?: string;
+        };
+        Update: {
+          query_name?: string;
+          pubchem_cid?: number | null;
+          canonical_name?: string | null;
+          synonyms?: string[];
+          looked_up_at?: string;
         };
         Relationships: [];
       };
@@ -466,6 +500,19 @@ export type Database = {
     Views: Record<never, never>;
 
     Functions: {
+      merge_product_ideas: {
+        Args: {
+          survivor_id: string;
+          absorbed_ids: string[];
+          new_name: string;
+          new_rating: number | null;
+          new_notes: string | null;
+          new_cid: number | null;
+          new_canonical: string | null;
+          new_synonyms: string[];
+        };
+        Returns: undefined;
+      };
       match_chunks: {
         Args: {
           query_embedding: string;

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { EMBEDDING_MODEL } from '@/lib/constants';
 import { toVector } from '@/lib/embedding';
+import { normalizeName, resolveCompounds, type CompoundLookup } from '@/lib/pubchem';
 import type { Database } from '@/lib/types/database';
 
 import type { ChunkData, ClassifyResult, CompoundSuggestion, ExtractResult } from './types';
@@ -135,9 +136,15 @@ async function upsertTopics(
 }
 
 /**
- * Upsert product ideas (biomanufacturing compounds) by case-insensitive name
- * and link them to the source. Same select-then-insert pattern as
- * `upsertTopics()` because PostgREST can't target the expression index.
+ * Upsert product ideas (biomanufacturing compounds) and link them to the
+ * source.
+ *
+ * Each compound is resolved against PubChem (name first, then aliases; see
+ * `resolveCompounds()`), then matched to an existing row by PubChem CID,
+ * else by case-insensitive name or alias. Unmatched compounds become new
+ * rows, named by PubChem's canonical name when they resolve. Compounds that
+ * land on the same row (e.g. "rebaudioside M" and "Reb M" listed separately)
+ * collapse to one link, keeping the most relevant context.
  *
  * Links upsert on (source_id, product_idea_id), so re-running extraction on
  * a source updates the links it finds again and leaves any others in place.
@@ -152,64 +159,100 @@ export async function storeCompounds(
 ): Promise<void> {
   if (compounds.length === 0) return;
 
-  const { data: existing, error: existingError } = await supabase
-    .from('product_ideas')
-    .select('id, name')
-    .eq('user_id', userId);
-
-  if (existingError) {
-    throw new Error(`Failed to load existing product ideas: ${existingError.message}`);
+  const [lookups, existingResult] = await Promise.all([
+    resolveCompounds(supabase, compounds),
+    supabase.from('product_ideas').select('id, name, pubchem_cid').eq('user_id', userId),
+  ]);
+  if (existingResult.error) {
+    throw new Error(`Failed to load existing product ideas: ${existingResult.error.message}`);
   }
 
-  const existingByLowerName = new Map((existing ?? []).map((p) => [p.name.toLowerCase(), p.id]));
+  const idByCid = new Map<number, string>();
+  const idByName = new Map<string, string>();
+  for (const row of existingResult.data ?? []) {
+    if (row.pubchem_cid !== null) idByCid.set(row.pubchem_cid, row.id);
+    idByName.set(normalizeName(row.name), row.id);
+  }
 
-  const toCreate = compounds.filter((c) => !existingByLowerName.has(c.name.toLowerCase()));
+  const findExisting = (c: CompoundSuggestion, lookup: CompoundLookup | null) => {
+    if (lookup?.cid != null && idByCid.has(lookup.cid)) return idByCid.get(lookup.cid);
+    const names = [c.name, ...c.aliases, ...(lookup?.canonicalName ? [lookup.canonicalName] : [])];
+    for (const candidate of names) {
+      const id = idByName.get(normalizeName(candidate));
+      if (id) return id;
+    }
+    return undefined;
+  };
 
-  if (toCreate.length > 0) {
+  // Compounds with no existing row, one new row per CID (or per name).
+  const toCreate = new Map<string, { compound: CompoundSuggestion; lookup: CompoundLookup | null }>();
+  compounds.forEach((compound, i) => {
+    const lookup = lookups[i];
+    if (findExisting(compound, lookup)) return;
+    const key = lookup?.cid != null ? `cid:${lookup.cid}` : `name:${normalizeName(compound.name)}`;
+    if (!toCreate.has(key)) toCreate.set(key, { compound, lookup });
+  });
+
+  if (toCreate.size > 0) {
     const { data: created, error: createError } = await supabase
       .from('product_ideas')
       .insert(
-        toCreate.map((c) => ({
+        [...toCreate.values()].map(({ compound, lookup }) => ({
           user_id: userId,
-          name: c.name,
-          description: c.description || null,
+          name: lookup?.canonicalName ?? compound.name,
+          description: compound.description || null,
+          pubchem_cid: lookup?.cid ?? null,
+          canonical_name: lookup?.canonicalName ?? null,
+          synonyms: lookup?.synonyms ?? [],
         })),
       )
-      .select('id, name');
+      .select('id, name, pubchem_cid');
 
     if (createError) {
       throw new Error(`Failed to create product ideas: ${createError.message}`);
     }
 
-    for (const idea of created ?? []) {
-      existingByLowerName.set(idea.name.toLowerCase(), idea.id);
+    for (const row of created ?? []) {
+      if (row.pubchem_cid !== null) idByCid.set(row.pubchem_cid, row.id);
+      idByName.set(normalizeName(row.name), row.id);
+    }
+    // A new row may be named by its canonical name; also index the names the
+    // source used, so compounds in this batch find it.
+    for (const { compound, lookup } of toCreate.values()) {
+      const id = lookup?.cid != null ? idByCid.get(lookup.cid) : undefined;
+      if (id) idByName.set(normalizeName(compound.name), id);
     }
   }
 
-  const links: {
-    source_id: string;
-    product_idea_id: string;
-    context: string | null;
-    relevance_score: number;
-    chunk_id: string | null;
-  }[] = [];
+  const links = new Map<
+    string,
+    {
+      source_id: string;
+      product_idea_id: string;
+      context: string | null;
+      relevance_score: number;
+      chunk_id: string | null;
+    }
+  >();
 
-  for (const compound of compounds) {
-    const ideaId = existingByLowerName.get(compound.name.toLowerCase());
-    if (!ideaId) continue;
-    links.push({
+  compounds.forEach((compound, i) => {
+    const ideaId = findExisting(compound, lookups[i]);
+    if (!ideaId) return;
+    const prev = links.get(ideaId);
+    if (prev && prev.relevance_score >= compound.relevanceScore) return;
+    links.set(ideaId, {
       source_id: sourceId,
       product_idea_id: ideaId,
       context: compound.context || null,
       relevance_score: compound.relevanceScore,
       chunk_id: chunkIdByIndex.get(compound.chunkIndex) ?? null,
     });
-  }
+  });
 
-  if (links.length > 0) {
+  if (links.size > 0) {
     const { error: linkError } = await supabase
       .from('source_product_ideas')
-      .upsert(links, { onConflict: 'source_id,product_idea_id' });
+      .upsert([...links.values()], { onConflict: 'source_id,product_idea_id' });
 
     if (linkError) {
       throw new Error(`Failed to link product ideas to source: ${linkError.message}`);

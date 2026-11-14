@@ -140,6 +140,14 @@ now and expensive later:
 - **`sources.fts` is a generated column**, weighted title > summary > note >
   body. Being a real column rather than an expression index means queries can
   `ts_rank` it directly, which is what hybrid keyword+vector retrieval needs.
+- **Compounds dedupe on PubChem CID.** Each extracted compound name (then its
+  aliases) is looked up in PubChem (`src/lib/pubchem.ts`, cached in
+  `compound_lookups`, ≤5 requests/s) and `product_ideas` is unique on
+  `(user_id, pubchem_cid)`, so synonyms like "Reb M" and "rebaudioside M" are
+  one row. Names that don't resolve (mixtures, enzymes, brand-only products)
+  fall back to `lower(name)`. A CID is only accepted when the queried name is
+  one of PubChem's synonyms for it. Existing duplicates are merged through a
+  reviewed flow on `/maintenance`.
 - **`source_similarities` stores each pair once**, enforced by
   `CHECK (source_a_id < source_b_id)`. Only symmetric relationship types exist
   for now; a directional one (`updates`) needs an explicit direction column.
