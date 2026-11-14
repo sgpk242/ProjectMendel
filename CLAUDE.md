@@ -14,7 +14,7 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - **Extraction:** Jina Reader (`r.jina.ai`), `src/lib/pipeline/extract.ts`.
 - **Classification:** Groq `openai/gpt-oss-120b` via `groq-sdk`, `src/lib/pipeline/classify.ts`.
 - **Embeddings:** Cohere `embed-v4.0` called directly at `api.cohere.com`, 1024 dims (`vector(1024)`).
-- **Feeds and lookups:** OpenAlex + Jina Search (`src/lib/feed/`); Wikipedia REST for product descriptions (`src/lib/wikipedia.ts`).
+- **Feeds and lookups:** OpenAlex + Jina Search (`src/lib/feed/`); Wikipedia REST for product descriptions (`src/lib/wikipedia.ts`); PubChem PUG REST for compound normalization (`src/lib/pubchem.ts`, cached in `compound_lookups`).
 - **Mobile:** PWA with a Web Share Target (`src/app/manifest.ts`, `/capture`, `public/sw.js`).
 - **Hosting:** local dev today; Vercel planned. `/api/ingest` sets `maxDuration`.
 
@@ -27,6 +27,7 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - **RLS:** enabled on every table, policies `to authenticated` using `(select auth.uid())`. Owner tables check `user_id = (select auth.uid())`, with `with check` on insert and update. Junction tables check ownership via `exists (select 1 from sources ...)`. The secret key bypasses RLS, so any code using it must filter by `user_id`.
 - **DB types:** `npm run db:types` regenerates `src/lib/types/database.ts` from the live project; Claude hand-edits it to match each new migration. Never put helpers in it (they live in `src/lib/embedding.ts`).
 - **Enums:** mirror DB enums as `as const` arrays plus label maps in `src/lib/constants.ts`.
+- **One-off data fixes** go on `/maintenance` (not in the nav) as an authenticated, session-scoped flow: no secret key, preview before writing.
 - **Product-idea ratings:** `interest_rating` null = never rated, 0 = de-listed, 1–5 = rated (only 1–5 show on the radar).
 
 ## Decisions log
@@ -47,24 +48,28 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 | 2026-09-18 | PWA share target + async ingest via `after()` (202 response) | Two-tap mobile capture without waiting on the pipeline |
 | 2026-09-19 | Wikipedia extract fetched lazily on first product view, cached on the row | Works for existing compounds and keeps ingest fast |
 | 2026-11-14 | Reprioritized toward commercial signals and a theses table; executing S1 to S3 | Shift from a library of papers to commercial signals and testable calls |
+| 2026-11-14 | Compound extraction is its own stage over the full text, in ~16K-char batches, run after the response | classify read only the first 12K chars; full text takes minutes under Groq tokens-per-minute limits |
+| 2026-11-14 | End matter (references, "About {Company}", forward-looking statements, related links) excluded for every source type | Boilerplate inflated compound counts; press releases and news matter as much as papers |
+| 2026-11-14 | Compounds dedupe on PubChem CID, falling back to `lower(name)`; a CID is accepted only if the name is one of its synonyms | Synonyms split counts; short names like "PHA" can match the wrong compound |
+| 2026-11-14 | `compound_lookups` cache is shared, not owner-scoped | Public PubChem data; each name is looked up once |
+| 2026-11-14 | Existing duplicates merged via a reviewed flow; de-listed vs rated decided per merge | Merges can't be undone |
+| 2026-11-14 | `theses` + `thesis_sources` (stance: supports / contradicts / context) | Record calls with a review date and accumulate evidence for and against |
 
 ## Current status and next steps
 
 **Built:**
 - Phase 0: scaffold, schema, RLS, auth.
-- Phase 1: six-stage ingest pipeline, dedup, similarity.
+- Phase 1: ingest pipeline, dedup, similarity.
 - Phase 2: dashboard search and filters, quick actions, collections, source detail.
 - Phase 3: funding tracker, product idea radar and product pages, papers feed.
 - Phase 3+: PWA mobile capture, Wikipedia descriptions.
+- Nov 2026: S1 full-text compound extraction (all source types), S2 PubChem normalization with reviewed merges, S3 theses (`/theses`, linking from source pages). Migrations 011–013.
 
 **Stubbed:** chat (`/api/chat`, `/chat`).
 
-**Next:**
-1. S1: full-text compound extraction.
-2. S2: PubChem normalization.
-3. S3: theses.
+**Pending on the live data:** on `/maintenance`, look up names → review and apply merges → re-extract legacy sources (in that order).
 
-**Then:** structured event extraction, commercial feed sources, scheduled feed refresh, trend view, chat.
+**Next:** structured event extraction, commercial feed sources, scheduled feed refresh, trend view, chat.
 
 ## Working with me
 
