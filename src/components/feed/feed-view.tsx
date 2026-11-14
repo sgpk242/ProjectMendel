@@ -9,8 +9,33 @@ import {
   FEED_SOURCE_TYPES,
   FEED_SOURCE_TYPE_LABELS,
   type FeedItemStatus,
+  type FeedSourceType,
 } from '@/lib/constants';
 import type { FeedItem, FeedQuery } from '@/lib/types/database';
+
+/**
+ * How to phrase a query for each search type. Each search works differently,
+ * so the most effective structure differs: OpenAlex matches scholarly
+ * titles/abstracts, open-web News ranks general pages, and Commercial
+ * already restricts to wires/trade press and adds deal words.
+ */
+const QUERY_GUIDES: Record<FeedSourceType, { structure: string; example: string; tip: string }> = {
+  openalex: {
+    structure: '[compound or product] + [production route or organism]',
+    example: 'rebaudioside M fermentation Saccharomyces cerevisiae',
+    tip: 'Matches titles and abstracts of scholarly papers. Use 3–5 specific technical terms; leave out business words like market, launch or price.',
+  },
+  web: {
+    structure: '[subject] + [angle: cost, regulation, market, capacity] + [year]',
+    example: 'precision fermentation whey protein cost parity 2026',
+    tip: 'Open-web news and analysis. An angle and a year keep results specific and current. Wires and trade press are excluded here — use Commercial for those.',
+  },
+  commercial: {
+    structure: '[compound, product category, or company] — nothing else',
+    example: 'precision fermentation dairy protein',
+    tip: 'Searches only press-release wires and trade press, and deal words (announces, partnership, funding, offtake…) are added for you, so keep the query to one subject. A company name also works well, e.g. Ginkgo Bioworks.',
+  },
+};
 
 type Props = {
   queries: FeedQuery[];
@@ -25,6 +50,8 @@ export function FeedView({ queries, items, newCount }: Props) {
   const [importing, setImporting] = useState(false);
   const [addingQuery, setAddingQuery] = useState(false);
   const [savingQuery, setSavingQuery] = useState(false);
+  const [newQueryText, setNewQueryText] = useState('');
+  const [newQueryType, setNewQueryType] = useState<FeedSourceType>('commercial');
   const [actionId, setActionId] = useState<string | null>(null);
   const [showQueries, setShowQueries] = useState(false);
 
@@ -58,6 +85,7 @@ export function FeedView({ queries, items, newCount }: Props) {
       }),
     });
     setSavingQuery(false);
+    setNewQueryText('');
     setAddingQuery(false);
     router.refresh();
   }
@@ -196,38 +224,61 @@ export function FeedView({ queries, items, newCount }: Props) {
           </div>
 
           {addingQuery ? (
-            <form onSubmit={handleCreateQuery} className="mt-3 flex gap-2">
-              <input
-                name="queryText"
-                required
-                placeholder="Search query"
-                className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm"
-              />
-              <select
-                name="sourceType"
-                defaultValue="openalex"
-                className="rounded border border-border bg-background px-2 py-1.5 text-sm"
-              >
-                {FEED_SOURCE_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {FEED_SOURCE_TYPE_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="submit"
-                disabled={savingQuery}
-                className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              >
-                {savingQuery ? '…' : 'Add'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setAddingQuery(false)}
-                className="rounded px-3 py-1.5 text-sm text-muted hover:text-foreground"
-              >
-                Cancel
-              </button>
+            <form onSubmit={handleCreateQuery} className="mt-3">
+              <div className="flex gap-2">
+                <input
+                  name="queryText"
+                  required
+                  value={newQueryText}
+                  onChange={(e) => setNewQueryText(e.target.value)}
+                  placeholder={`e.g. ${QUERY_GUIDES[newQueryType].example}`}
+                  className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm"
+                />
+                <select
+                  name="sourceType"
+                  value={newQueryType}
+                  onChange={(e) => setNewQueryType(e.target.value as FeedSourceType)}
+                  className="rounded border border-border bg-background px-2 py-1.5 text-sm"
+                >
+                  {FEED_SOURCE_TYPES.map((t) => (
+                    <option key={t} value={t}>
+                      {FEED_SOURCE_TYPE_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="submit"
+                  disabled={savingQuery}
+                  className="rounded bg-accent px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {savingQuery ? '…' : 'Add'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddingQuery(false)}
+                  className="rounded px-3 py-1.5 text-sm text-muted hover:text-foreground"
+                >
+                  Cancel
+                </button>
+              </div>
+              <div className="mt-2 rounded border border-border/50 bg-background/40 px-3 py-2 text-xs text-muted">
+                <p>
+                  <span className="font-medium text-foreground/80">Suggested structure: </span>
+                  {QUERY_GUIDES[newQueryType].structure}
+                </p>
+                <p className="mt-1">
+                  <span className="font-medium text-foreground/80">Example: </span>
+                  <button
+                    type="button"
+                    onClick={() => setNewQueryText(QUERY_GUIDES[newQueryType].example)}
+                    className="text-accent hover:underline"
+                    title="Use this example"
+                  >
+                    {QUERY_GUIDES[newQueryType].example}
+                  </button>
+                </p>
+                <p className="mt-1">{QUERY_GUIDES[newQueryType].tip}</p>
+              </div>
             </form>
           ) : (
             <button

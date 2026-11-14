@@ -5,10 +5,7 @@ import { buildMergePlan } from '@/lib/compound-merge';
 import { PageShell } from '@/components/ui/page-shell';
 import { createClient } from '@/lib/supabase/server';
 
-/**
- * One-off data maintenance tasks. Not linked from the nav — reach it at
- * /maintenance.
- */
+/** One-off data maintenance tasks: each previews before it writes. */
 export default async function MaintenancePage() {
   const supabase = await createClient();
   const {

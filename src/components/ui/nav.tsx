@@ -6,6 +6,7 @@ const LINKS = [
   { href: '/dashboard', label: 'Dashboard' },
   { href: '/theses', label: 'Theses' },
   { href: '/chat', label: 'Chat' },
+  { href: '/maintenance', label: 'Maintenance' },
 ] as const;
 
 /** Top-level navigation for the authenticated area. */

@@ -27,7 +27,7 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - **RLS:** enabled on every table, policies `to authenticated` using `(select auth.uid())`. Owner tables check `user_id = (select auth.uid())`, with `with check` on insert and update. Junction tables check ownership via `exists (select 1 from sources ...)`. The secret key bypasses RLS, so any code using it must filter by `user_id`.
 - **DB types:** `npm run db:types` regenerates `src/lib/types/database.ts` from the live project; Claude hand-edits it to match each new migration. Never put helpers in it (they live in `src/lib/embedding.ts`).
 - **Enums:** mirror DB enums as `as const` arrays plus label maps in `src/lib/constants.ts`.
-- **One-off data fixes** go on `/maintenance` (not in the nav) as an authenticated, session-scoped flow: no secret key, preview before writing.
+- **One-off data fixes** go on `/maintenance` (in the nav) as an authenticated, session-scoped flow: no secret key, preview before writing.
 - **Compound markets:** `product_ideas.market` is industrial / pharma / both (null = untagged). The model only fills untagged rows; a manual tag is never overwritten.
 - **Product-idea ratings:** `interest_rating` null = never rated, 0 = de-listed, 1–5 = rated (only 1–5 show on the radar).
 
