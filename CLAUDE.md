@@ -14,7 +14,7 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - **Extraction:** Jina Reader (`r.jina.ai`), `src/lib/pipeline/extract.ts`.
 - **Classification:** Groq `openai/gpt-oss-120b` via `groq-sdk`, `src/lib/pipeline/classify.ts`.
 - **Embeddings:** Cohere `embed-v4.0` called directly at `api.cohere.com`, 1024 dims (`vector(1024)`).
-- **Feeds and lookups:** OpenAlex + Jina Search (`src/lib/feed/`); Wikipedia REST for product descriptions (`src/lib/wikipedia.ts`); PubChem PUG REST for compound normalization (`src/lib/pubchem.ts`, cached in `compound_lookups`).
+- **Feeds and lookups:** OpenAlex + Jina Search (`src/lib/feed/`; "Commercial" queries are restricted to the sites in `commercial-sites.ts`); Wikipedia REST for product descriptions (`src/lib/wikipedia.ts`); PubChem PUG REST for compound normalization (`src/lib/pubchem.ts`, cached in `compound_lookups`).
 - **Mobile:** PWA with a Web Share Target (`src/app/manifest.ts`, `/capture`, `public/sw.js`).
 - **Hosting:** local dev today; Vercel planned. `/api/ingest` sets `maxDuration`.
 
@@ -28,6 +28,7 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - **DB types:** `npm run db:types` regenerates `src/lib/types/database.ts` from the live project; Claude hand-edits it to match each new migration. Never put helpers in it (they live in `src/lib/embedding.ts`).
 - **Enums:** mirror DB enums as `as const` arrays plus label maps in `src/lib/constants.ts`.
 - **One-off data fixes** go on `/maintenance` (not in the nav) as an authenticated, session-scoped flow: no secret key, preview before writing.
+- **Compound markets:** `product_ideas.market` is industrial / pharma / both (null = untagged). The model only fills untagged rows; a manual tag is never overwritten.
 - **Product-idea ratings:** `interest_rating` null = never rated, 0 = de-listed, 1–5 = rated (only 1–5 show on the radar).
 
 ## Decisions log
@@ -54,6 +55,11 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 | 2026-11-14 | `compound_lookups` cache is shared, not owner-scoped | Public PubChem data; each name is looked up once |
 | 2026-11-14 | Existing duplicates merged via a reviewed flow; de-listed vs rated decided per merge | Merges can't be undone |
 | 2026-11-14 | `theses` + `thesis_sources` (stance: supports / contradicts / context) | Record calls with a review date and accumulate evidence for and against |
+| 2026-11-14 | Dropped `theses.confidence` | A numeric confidence wasn't useful; the claim, change-my-mind and linked evidence carry the signal |
+| 2026-11-14 | Thesis source suggestions: embed the claim, `match_chunks`, best passage per source; linked only when a stance is picked | Connect new theses to the existing library without unreviewed links |
+| 2026-11-14 | Feed "Commercial" query type: Jina Search restricted to wires and trade press, plus deal terms | Open-web search buried commercial signals |
+| 2026-11-14 | "News (open web)" results exclude the commercial sites | Keep News and Commercial queries from spending results on the same publications |
+| 2026-11-14 | Compounds tagged industrial / pharma / both; radar toggles between them | Commercial ingredients and pharma starting materials are separate markets to track |
 
 ## Current status and next steps
 
@@ -63,13 +69,14 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - Phase 2: dashboard search and filters, quick actions, collections, source detail.
 - Phase 3: funding tracker, product idea radar and product pages, papers feed.
 - Phase 3+: PWA mobile capture, Wikipedia descriptions.
-- Nov 2026: S1 full-text compound extraction (all source types), S2 PubChem normalization with reviewed merges, S3 theses (`/theses`, linking from source pages). Migrations 011–013.
+- Nov 2026: S1 full-text compound extraction (all source types), S2 PubChem normalization with reviewed merges, S3 theses (`/theses`, linking from source pages, suggested related sources). Migrations 011–016.
+- Nov 2026: feed "Commercial" query type (wires and trade press) separate from open-web News; dashboard tile renamed "Web-Scraped Sources for Review"; Industrial / Pharma toggle on the Product Idea Radar.
 
 **Stubbed:** chat (`/api/chat`, `/chat`).
 
-**Pending on the live data:** on `/maintenance`, look up names → review and apply merges → re-extract legacy sources (in that order).
+**Pending on the live data:** on `/maintenance`, look up names → review and apply merges → tag industrial / pharma → re-extract legacy sources (in that order). First Commercial feed refresh: if it returns nothing, blank `COMMERCIAL_QUERY_TERMS`.
 
-**Next:** structured event extraction, commercial feed sources, scheduled feed refresh, trend view, chat.
+**Next:** structured event extraction, company newsrooms as commercial sources, scheduled feed refresh, trend view, chat.
 
 ## Working with me
 
