@@ -50,7 +50,7 @@ export function PapersFeedTile({ newCount, items }: Props) {
     <div className="rounded-lg border border-border bg-surface">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold">Web-Scraped Papers for Review</h2>
+          <h2 className="text-sm font-semibold">Web-Scraped Sources for Review</h2>
           {newCount > 0 && (
             <span className="rounded-full bg-accent/20 px-2 py-0.5 text-xs font-medium text-accent">
               {newCount}
@@ -74,7 +74,7 @@ export function PapersFeedTile({ newCount, items }: Props) {
       <div className="px-4 py-3">
         {items.length === 0 ? (
           <p className="text-sm text-muted">
-            No new papers. Add feed queries and click Refresh to discover papers.
+            No new sources. Add feed queries and click Refresh to discover sources.
           </p>
         ) : (
           <div className="space-y-2.5">
