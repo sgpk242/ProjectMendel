@@ -86,6 +86,29 @@ export const FEED_ITEM_STATUS_LABELS: Record<FeedItemStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Theses
+// ---------------------------------------------------------------------------
+
+export const THESIS_STATUSES = ['open', 'confirmed', 'refuted', 'unresolved'] as const;
+export type ThesisStatus = (typeof THESIS_STATUSES)[number];
+
+export const THESIS_STATUS_LABELS: Record<ThesisStatus, string> = {
+  open: 'Open',
+  confirmed: 'Confirmed',
+  refuted: 'Refuted',
+  unresolved: 'Unresolved',
+};
+
+export const THESIS_STANCES = ['supports', 'contradicts', 'context'] as const;
+export type ThesisStance = (typeof THESIS_STANCES)[number];
+
+export const THESIS_STANCE_LABELS: Record<ThesisStance, string> = {
+  supports: 'Supports',
+  contradicts: 'Contradicts',
+  context: 'Context',
+};
+
+// ---------------------------------------------------------------------------
 // Embedding configuration
 // ---------------------------------------------------------------------------
 
@@ -108,4 +131,5 @@ export const PROTECTED_ROUTES = [
   '/feed',
   '/capture',
   '/maintenance',
+  '/theses',
 ] as const;

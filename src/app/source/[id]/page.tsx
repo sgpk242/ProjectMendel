@@ -11,6 +11,7 @@ import { SimilarSources, type SimilarSourceItem } from '@/components/source/simi
 import { SourceTypeEditor } from '@/components/source/source-type-editor';
 import { StatusEditor } from '@/components/source/status-editor';
 import { SummarySection } from '@/components/source/summary-section';
+import { ThesisLinks, type ThesisLink, type ThesisOption } from '@/components/source/thesis-links';
 import { TopicList, type TopicItem } from '@/components/source/topic-list';
 import { PageShell } from '@/components/ui/page-shell';
 import { createClient } from '@/lib/supabase/server';
@@ -44,12 +45,14 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
     );
   }
 
-  const [topics, compounds, similarSources, memberships] = await Promise.all([
-    loadTopics(supabase, id),
-    loadProductIdeas(supabase, id),
-    loadSimilarSources(supabase, id),
-    loadCollectionMemberships(supabase, id),
-  ]);
+  const [topics, compounds, similarSources, memberships, { thesisLinks, thesisOptions }] =
+    await Promise.all([
+      loadTopics(supabase, id),
+      loadProductIdeas(supabase, id),
+      loadSimilarSources(supabase, id),
+      loadCollectionMemberships(supabase, id),
+      loadTheses(supabase, id),
+    ]);
 
   return (
     <PageShell email={user?.email}>
@@ -172,6 +175,13 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
           )}
         </div>
       ) : null}
+
+      <div className="mt-6">
+        <h2 className="text-sm font-semibold tracking-tight text-muted">Theses</h2>
+        <div className="mt-2">
+          <ThesisLinks sourceId={source.id} links={thesisLinks} theses={thesisOptions} />
+        </div>
+      </div>
 
       <div className="mt-6">
         <h2 className="text-sm font-semibold tracking-tight text-muted">Collections</h2>
@@ -329,4 +339,30 @@ async function loadProductIdeas(
   }
 
   return compounds.sort((a, b) => (b.relevanceScore ?? 0) - (a.relevanceScore ?? 0));
+}
+
+/** The user's theses, and which of them this source is linked to (with stance). */
+async function loadTheses(
+  supabase: Supabase,
+  sourceId: string,
+): Promise<{ thesisLinks: ThesisLink[]; thesisOptions: ThesisOption[] }> {
+  const [{ data: theses }, { data: links }] = await Promise.all([
+    supabase
+      .from('theses')
+      .select('id, claim, status')
+      .order('review_date', { ascending: true, nullsFirst: false }),
+    supabase.from('thesis_sources').select('thesis_id, stance, note').eq('source_id', sourceId),
+  ]);
+
+  const claimById = new Map((theses ?? []).map((t) => [t.id, t.claim]));
+  const thesisLinks: ThesisLink[] = (links ?? [])
+    .filter((l) => claimById.has(l.thesis_id))
+    .map((l) => ({
+      thesisId: l.thesis_id,
+      claim: claimById.get(l.thesis_id)!,
+      stance: l.stance,
+      note: l.note,
+    }));
+
+  return { thesisLinks, thesisOptions: theses ?? [] };
 }

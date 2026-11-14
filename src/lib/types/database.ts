@@ -416,6 +416,74 @@ export type Database = {
         Relationships: [];
       };
 
+      theses: {
+        Row: {
+          id: string;
+          user_id: string;
+          claim: string;
+          confidence: number | null;
+          change_my_mind: string | null;
+          review_date: string | null;
+          status: Database['public']['Enums']['thesis_status'];
+          resolution_note: string | null;
+          resolved_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          claim: string;
+          confidence?: number | null;
+          change_my_mind?: string | null;
+          review_date?: string | null;
+          status?: Database['public']['Enums']['thesis_status'];
+          resolution_note?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          claim?: string;
+          confidence?: number | null;
+          change_my_mind?: string | null;
+          review_date?: string | null;
+          status?: Database['public']['Enums']['thesis_status'];
+          resolution_note?: string | null;
+          resolved_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      thesis_sources: {
+        Row: {
+          thesis_id: string;
+          source_id: string;
+          stance: Database['public']['Enums']['thesis_stance'];
+          note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          thesis_id: string;
+          source_id: string;
+          stance: Database['public']['Enums']['thesis_stance'];
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          thesis_id?: string;
+          source_id?: string;
+          stance?: Database['public']['Enums']['thesis_stance'];
+          note?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+
       feed_queries: {
         Row: {
           id: string;
@@ -604,6 +672,8 @@ export type Database = {
       feed_source_type: 'openalex' | 'web';
       feed_item_status: 'new' | 'reviewed' | 'dismissed' | 'ingested';
       compound_status: 'pending' | 'running' | 'complete' | 'failed';
+      thesis_status: 'open' | 'confirmed' | 'refuted' | 'unresolved';
+      thesis_stance: 'supports' | 'contradicts' | 'context';
     };
 
     CompositeTypes: Record<never, never>;
@@ -631,6 +701,7 @@ export type FundingOpportunity = Tables<'funding_opportunities'>;
 export type ProductIdea = Tables<'product_ideas'>;
 export type FeedQuery = Tables<'feed_queries'>;
 export type FeedItem = Tables<'feed_items'>;
+export type Thesis = Tables<'theses'>;
 
 export type MatchedChunk = PublicSchema['Functions']['match_chunks']['Returns'][number];
 export type MatchedSource = PublicSchema['Functions']['match_sources']['Returns'][number];

@@ -175,6 +175,16 @@ Three intelligence tiles sit above the source list on `/dashboard`:
 | **Product Idea Radar** | Biomanufacturing compounds auto-extracted by the LLM during ingestion. Visible per-source on the detail page; appears on the dashboard only once you assign an interest rating (1-5). | `product_ideas` + `source_product_ideas` junction |
 | **New Papers Feed** | Discovers papers (OpenAlex) and news (Jina Search) matching your queries. Queries can be custom or bulk-imported from existing topics. Manual refresh trigger; items are triaged and one-click ingested into the corpus. Full view at `/feed`. | `feed_queries` + `feed_items` tables |
 
+## Theses
+
+`/theses` records calls about where the industry is going: a claim, a
+confidence (0–100%), what would change your mind, and a review date. Theses
+are sorted by review date, and open ones past it are flagged overdue.
+Resolving one (confirmed / refuted / unresolved) records a note and the
+date. On any source's detail page, link the source to a thesis with a
+stance — supports, contradicts, or context — so evidence accumulates on
+each call. Tables: `theses`, `thesis_sources` (migration 013).
+
 ## Mobile capture (Android)
 
 Mendel is a PWA installable from Chrome on Android. Once installed, it appears
