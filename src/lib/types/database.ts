@@ -666,7 +666,7 @@ export type Database = {
         | 'complete'
         | 'failed';
       similarity_type: 'duplicate' | 'related' | 'contradicts';
-      feed_source_type: 'openalex' | 'web';
+      feed_source_type: 'openalex' | 'web' | 'commercial';
       feed_item_status: 'new' | 'reviewed' | 'dismissed' | 'ingested';
       compound_status: 'pending' | 'running' | 'complete' | 'failed';
       thesis_status: 'open' | 'confirmed' | 'refuted' | 'unresolved';

@@ -2,13 +2,14 @@ import { NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
 import { searchOpenAlex } from '@/lib/feed/openalex';
-import { searchJina } from '@/lib/feed/jina-search';
+import { searchCommercial, searchJina } from '@/lib/feed/jina-search';
 
 /**
  * POST /api/feed/refresh — run all enabled feed queries and fetch new items.
  *
  * For each enabled query:
- *  1. Call the appropriate fetcher (OpenAlex or Jina Search)
+ *  1. Call the appropriate fetcher (OpenAlex, Jina Search, or Jina Search
+ *     restricted to commercial sites)
  *  2. Dedup-insert results into feed_items
  *  3. Update feed_queries.last_run_at
  *
@@ -53,7 +54,9 @@ export async function POST() {
       const results =
         query.source_type === 'openalex'
           ? await searchOpenAlex(query.query_text)
-          : await searchJina(query.query_text);
+          : query.source_type === 'commercial'
+            ? await searchCommercial(query.query_text)
+            : await searchJina(query.query_text);
 
       if (results.length === 0) {
         // Update last_run_at even with no results

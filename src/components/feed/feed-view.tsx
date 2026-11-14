@@ -7,6 +7,7 @@ import {
   FEED_ITEM_STATUSES,
   FEED_ITEM_STATUS_LABELS,
   FEED_SOURCE_TYPES,
+  FEED_SOURCE_TYPE_LABELS,
   type FeedItemStatus,
 } from '@/lib/constants';
 import type { FeedItem, FeedQuery } from '@/lib/types/database';
@@ -164,7 +165,7 @@ export function FeedView({ queries, items, newCount }: Props) {
                     {q.query_text}
                   </span>
                   <span className="rounded bg-surface-alt px-1.5 py-0.5 text-xs text-muted">
-                    {q.source_type}
+                    {FEED_SOURCE_TYPE_LABELS[q.source_type]}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted">
@@ -209,7 +210,7 @@ export function FeedView({ queries, items, newCount }: Props) {
               >
                 {FEED_SOURCE_TYPES.map((t) => (
                   <option key={t} value={t}>
-                    {t === 'openalex' ? 'Academic (OpenAlex)' : 'News (Web)'}
+                    {FEED_SOURCE_TYPE_LABELS[t]}
                   </option>
                 ))}
               </select>

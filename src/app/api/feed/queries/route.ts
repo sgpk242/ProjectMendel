@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { FEED_SOURCE_TYPES } from '@/lib/constants';
+import { FEED_SOURCE_TYPES, type FeedSourceType } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 
 /** GET /api/feed/queries — list the caller's feed queries. */
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     .insert({
       user_id: user.id,
       query_text: queryText.trim(),
-      source_type: (sourceType as 'openalex' | 'web') ?? 'openalex',
+      source_type: (sourceType as FeedSourceType | undefined) ?? 'openalex',
     })
     .select('*')
     .single();

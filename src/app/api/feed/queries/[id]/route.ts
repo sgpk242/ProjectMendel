@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { FEED_SOURCE_TYPES } from '@/lib/constants';
+import { FEED_SOURCE_TYPES, type FeedSourceType } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import type { TablesUpdate } from '@/lib/types/database';
 
@@ -45,7 +45,7 @@ export async function PATCH(
         { status: 400 },
       );
     }
-    updates.source_type = sourceType as 'openalex' | 'web';
+    updates.source_type = sourceType as FeedSourceType;
   }
 
   if (enabled !== undefined) {

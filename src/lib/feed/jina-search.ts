@@ -8,6 +8,8 @@
 
 import { createHash } from 'node:crypto';
 
+import { COMMERCIAL_QUERY_TERMS, COMMERCIAL_SITES } from './commercial-sites';
+
 export type JinaSearchResult = {
   externalId: string;
   title: string;
@@ -28,18 +30,23 @@ type JinaSearchResponse = {
 
 /**
  * Search the web via Jina Search for news and articles matching `query`.
+ * `sites` restricts results to those domains (Jina's repeated `site=`
+ * parameter).
  *
  * Returns up to `limit` results. No native dedup ID — we use a SHA-256 of
  * the URL as the external ID.
  */
 export async function searchJina(
   query: string,
-  { limit = 10 }: { limit?: number } = {},
+  { limit = 10, sites = [] }: { limit?: number; sites?: string[] } = {},
 ): Promise<JinaSearchResult[]> {
   const apiKey = process.env.JINA_API_KEY;
   if (!apiKey) throw new Error('JINA_API_KEY is not set');
 
-  const res = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}`, {
+  const params = new URLSearchParams(sites.map((site) => ['site', site]));
+  const qs = params.size > 0 ? `?${params}` : '';
+
+  const res = await fetch(`https://s.jina.ai/${encodeURIComponent(query)}${qs}`, {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       Accept: 'application/json',
@@ -63,4 +70,13 @@ export async function searchJina(
       url: item.url!,
       publishedDate: null, // Not reliably available from Jina Search
     }));
+}
+
+/**
+ * Search only press-release wires and trade publications
+ * (`COMMERCIAL_SITES`), with deal-related terms added to the query.
+ */
+export function searchCommercial(query: string): Promise<JinaSearchResult[]> {
+  const fullQuery = COMMERCIAL_QUERY_TERMS ? `${query} ${COMMERCIAL_QUERY_TERMS}` : query;
+  return searchJina(fullQuery, { sites: COMMERCIAL_SITES });
 }

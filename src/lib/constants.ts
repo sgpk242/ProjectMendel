@@ -72,8 +72,14 @@ export const FUNDING_STATUS_LABELS: Record<FundingStatus, string> = {
 // Papers feed
 // ---------------------------------------------------------------------------
 
-export const FEED_SOURCE_TYPES = ['openalex', 'web'] as const;
+export const FEED_SOURCE_TYPES = ['openalex', 'web', 'commercial'] as const;
 export type FeedSourceType = (typeof FEED_SOURCE_TYPES)[number];
+
+export const FEED_SOURCE_TYPE_LABELS: Record<FeedSourceType, string> = {
+  openalex: 'Academic (OpenAlex)',
+  web: 'News (open web)',
+  commercial: 'Commercial (wires & trade press)',
+};
 
 export const FEED_ITEM_STATUSES = ['new', 'reviewed', 'dismissed', 'ingested'] as const;
 export type FeedItemStatus = (typeof FEED_ITEM_STATUSES)[number];
