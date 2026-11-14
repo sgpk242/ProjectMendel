@@ -11,6 +11,8 @@ export type CompoundItem = {
   context: string | null;
   relevanceScore: number | null;
   interestRating: number | null;
+  /** `chunks.chunk_index` the context snippet came from, when recorded. */
+  chunkIndex: number | null;
 };
 
 type Props = {
@@ -120,7 +122,14 @@ export function CompoundList({ compounds }: Props) {
               <p className="mt-1 text-xs text-muted">{compound.description}</p>
             )}
             {compound.context && (
-              <p className="mt-1 text-xs italic text-muted/80">&ldquo;{compound.context}&rdquo;</p>
+              <p className="mt-1 text-xs italic text-muted/80">
+                &ldquo;{compound.context}&rdquo;
+                {compound.chunkIndex !== null ? (
+                  <span className="ml-1.5 not-italic text-muted/60">
+                    (passage {compound.chunkIndex + 1})
+                  </span>
+                ) : null}
+              </p>
             )}
           </div>
         );

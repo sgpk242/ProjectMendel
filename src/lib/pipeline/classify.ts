@@ -2,9 +2,13 @@ import Groq from 'groq-sdk';
 
 import { SOURCE_TYPES, type SourceType } from '@/lib/constants';
 
-import type { ClassifyResult, CompoundSuggestion, TopicSuggestion } from './types';
+import type { ClassifyResult, TopicSuggestion } from './types';
 
-/** Keeps cost and latency bounded on very long articles. */
+/**
+ * Keeps cost and latency bounded on very long articles. The opening of a
+ * source is plenty for a summary and topic tags; compounds are extracted
+ * separately over the full text (`compounds.ts`).
+ */
 const MAX_CONTENT_CHARS = 12_000;
 
 // `llama-3.3-70b-versatile` (the original choice here) isn't on every Groq
@@ -25,7 +29,6 @@ const SYSTEM_PROMPT = `You are a research librarian classifying web content. Giv
   - "blog", "linkedin_post", "report", "press_release", "other" — as their names suggest.
 - "publication": The outlet name if identifiable (e.g. "Nature", "MIT Technology Review"). null if unclear.
 - "author": The author's name if identifiable from byline or content. null if unclear.
-- "compounds": Array of ALL potential biomanufacturing chemical compounds or products discussed in the main body text (introduction, methods, results, discussion) — do not cap the count, and do not omit one for the sake of brevity. Only pull from the article's own body text, never from the titles or subject matter of works in a references/bibliography/citations list — a compound mentioned only because it appears in a cited paper's title does not count. Each: { "name": "Compound Name", "description": "Brief description of what it is and its biomanufacturing relevance", "context": "Brief quote or paraphrase of where this compound is discussed in the body text", "relevanceScore": 0.0-1.0 }. Only include compounds that could realistically be produced through biological manufacturing (fermentation, enzymatic synthesis, metabolic engineering, etc.). Return an empty array if none are relevant.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary.`;
 
@@ -35,11 +38,10 @@ type RawClassification = {
   sourceType?: unknown;
   publication?: unknown;
   author?: unknown;
-  compounds?: unknown;
 };
 
 /**
- * Summarize and classify article content with Groq (Llama 3.3 70B).
+ * Summarize and classify article content with Groq.
  *
  * Truncates to the first `MAX_CONTENT_CHARS` — plenty for a summary and
  * topic tags, and keeps cost/latency predictable on long-form pieces.
@@ -54,10 +56,9 @@ export async function classify(
 
   const response = await client.chat.completions.create({
     model: MODEL,
-    // Uncapped compound extraction means the response can run long on
-    // compound-dense papers — 1024 was tuned for summary+topics alone and
-    // would silently truncate the compounds array mid-JSON on those.
-    max_tokens: 4096,
+    // Summary + topics + metadata only. gpt-oss is a reasoning model, so its
+    // hidden reasoning tokens count against this too — leave headroom.
+    max_tokens: 2048,
     temperature: 0,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -126,22 +127,7 @@ function normalize(raw: RawClassification, truncated: boolean): ClassifyResult {
 
   const author = typeof raw.author === 'string' && raw.author.trim() ? raw.author.trim() : null;
 
-  const compounds: CompoundSuggestion[] = Array.isArray(raw.compounds)
-    ? raw.compounds
-        .filter(
-          (c): c is { name: unknown; description: unknown; context: unknown; relevanceScore: unknown } =>
-            typeof c === 'object' && c !== null,
-        )
-        .map((c) => ({
-          name: typeof c.name === 'string' ? c.name.trim() : '',
-          description: typeof c.description === 'string' ? c.description.trim() : '',
-          context: typeof c.context === 'string' ? c.context.trim() : '',
-          relevanceScore: clamp01(typeof c.relevanceScore === 'number' ? c.relevanceScore : 0.5),
-        }))
-        .filter((c) => c.name.length > 0)
-    : [];
-
-  return { summary, topics, sourceType, publication, author, compounds, truncated };
+  return { summary, topics, sourceType, publication, author, truncated };
 }
 
 function clamp01(value: number): number {

@@ -27,12 +27,17 @@ export type TopicSuggestion = {
   relevanceScore: number;
 };
 
-/** A biomanufacturing compound or product extracted during classification. */
+/** A biomanufacturing compound or product extracted by `extractCompounds()`. */
 export type CompoundSuggestion = {
+  /** Full common name of the compound (generic, not a brand). */
   name: string;
+  /** Abbreviations, brand/trade names, and other names the source uses. */
+  aliases: string[];
   description: string;
   context: string;
   relevanceScore: number;
+  /** `chunks.chunk_index` of the passage `context` was taken from. */
+  chunkIndex: number;
 };
 
 /** Output of `classify()` — the LLM's read of the article. */
@@ -42,11 +47,10 @@ export type ClassifyResult = {
   sourceType: SourceType;
   publication: string | null;
   author: string | null;
-  compounds: CompoundSuggestion[];
   /**
    * True when Groq's response hit `max_tokens` (`finish_reason === 'length'`)
    * rather than completing naturally — the JSON was still parseable, but the
-   * summary/topics/compounds may be an incomplete read of the source.
+   * summary/topics may be an incomplete read of the source.
    */
   truncated: boolean;
 };
@@ -82,7 +86,6 @@ export type IngestResult = {
   summary: string;
   sourceType: SourceType;
   topics: TopicSuggestion[];
-  compounds: CompoundSuggestion[];
   wordCount: number;
   readingTimeMinutes: number;
   chunkCount: number;

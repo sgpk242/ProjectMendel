@@ -52,6 +52,8 @@ export type Database = {
           source_embedding: string | null;
           embedding_model: string | null;
           classification_truncated: boolean;
+          compounds_status: Database['public']['Enums']['compound_status'] | null;
+          compounds_error: string | null;
           /** Generated column — readable, never writable. */
           fts: unknown | null;
         };
@@ -81,6 +83,8 @@ export type Database = {
           source_embedding?: string | null;
           embedding_model?: string | null;
           classification_truncated?: boolean;
+          compounds_status?: Database['public']['Enums']['compound_status'] | null;
+          compounds_error?: string | null;
         };
         Update: {
           id?: string;
@@ -108,6 +112,8 @@ export type Database = {
           source_embedding?: string | null;
           embedding_model?: string | null;
           classification_truncated?: boolean;
+          compounds_status?: Database['public']['Enums']['compound_status'] | null;
+          compounds_error?: string | null;
         };
         Relationships: [];
       };
@@ -357,18 +363,21 @@ export type Database = {
           product_idea_id: string;
           context: string | null;
           relevance_score: number | null;
+          chunk_id: string | null;
         };
         Insert: {
           source_id: string;
           product_idea_id: string;
           context?: string | null;
           relevance_score?: number | null;
+          chunk_id?: string | null;
         };
         Update: {
           source_id?: string;
           product_idea_id?: string;
           context?: string | null;
           relevance_score?: number | null;
+          chunk_id?: string | null;
         };
         Relationships: [];
       };
@@ -547,6 +556,7 @@ export type Database = {
       similarity_type: 'duplicate' | 'related' | 'contradicts';
       feed_source_type: 'openalex' | 'web';
       feed_item_status: 'new' | 'reviewed' | 'dismissed' | 'ingested';
+      compound_status: 'pending' | 'running' | 'complete' | 'failed';
     };
 
     CompositeTypes: Record<never, never>;

@@ -52,21 +52,25 @@ the link in the confirmation email or turn confirmations off under
 
 ## Ingest pipeline
 
-`/api/ingest` runs a URL through six discrete stages, each its own module
+`/api/ingest` runs a URL through seven discrete stages, each its own module
 under `src/lib/pipeline/` so they can be tested and iterated independently:
 
 | Stage | File | What it does |
 |---|---|---|
 | Extract | `extract.ts` | Jina Reader — full text, title, description, published date |
-| Classify | `classify.ts` | Groq (`openai/gpt-oss-120b`) — summary, topic tags, source type, author, biomanufacturing compounds |
+| Classify | `classify.ts` | Groq (`openai/gpt-oss-120b`) — summary, topic tags, source type, author (first 12K chars) |
 | Chunk | `chunk.ts` | Pure function — paragraph-boundary splitting, ~600 tokens/chunk, overlap |
 | Embed | `embed.ts` | Cohere `embed-v4.0` — one vector per chunk, batched, plus the source-level mean |
 | Store | `store.ts` | Writes the source row, upserts topics, upserts product ideas (compounds), inserts chunks — through the caller's RLS |
 | Similarity | `similarity.ts` | `match_sources` RPC — flags ≥0.95 cosine similarity as a duplicate, ≥0.75 as related |
+| Compounds | `compounds.ts` | Groq — biomanufacturing compounds from the **full text**, in batches of chunks, after the response (`after()`); skips references, press-release boilerplate and link lists; each compound records its source chunk |
 
 `ingest.ts` orchestrates the stages and advances `sources.ingest_status` at
 each transition, so a failure partway through is visible on the row (`ingest_error`)
-rather than silent. The route runs the whole pipeline synchronously before
+rather than silent. Compound extraction then runs after the response and is
+tracked separately on `sources.compounds_status`; `/maintenance` re-runs it
+over sources ingested before full-text extraction existed. The route runs the
+rest of the pipeline synchronously before
 responding — fine for local dev and for Vercel Pro's 300s limit at realistic
 article lengths; if that stops being true, the route becomes a thin enqueue
 against a background job, using the same `ingest_status` state machine.

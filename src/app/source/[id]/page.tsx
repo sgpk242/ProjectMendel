@@ -2,6 +2,7 @@ import Link from 'next/link';
 
 import { CollectionMemberships, type Membership } from '@/components/source/collection-memberships';
 import { CompoundList, type CompoundItem } from '@/components/source/compound-list';
+import { CompoundsProgress } from '@/components/source/compounds-progress';
 import { DeleteSourceButton } from '@/components/source/delete-button';
 import { MetadataPanel } from '@/components/source/metadata-panel';
 import { NoteEditor } from '@/components/source/note-editor';
@@ -145,14 +146,30 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
             </h2>
             {compounds.length > 0 ? (
               <div className="flex items-center gap-4 text-xs text-muted">
-                <span>Relevance in Paper</span>
+                <span>Relevance in Source</span>
                 <span>Interest</span>
               </div>
             ) : null}
           </div>
-          <div className="mt-2">
-            <CompoundList compounds={compounds} />
-          </div>
+          {source.compounds_status === 'pending' || source.compounds_status === 'running' ? (
+            <CompoundsProgress status={source.compounds_status} />
+          ) : source.compounds_status === 'failed' ? (
+            <div className="mt-2 rounded-md border border-red-700/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+              <p className="font-medium">Compound extraction failed</p>
+              {source.compounds_error ? (
+                <p className="mt-1 text-red-300/80">{source.compounds_error}</p>
+              ) : null}
+            </div>
+          ) : source.compounds_error ? (
+            <p className="mt-2 text-xs text-yellow-300/80">
+              Some of this source couldn&apos;t be read for compounds: {source.compounds_error}
+            </p>
+          ) : null}
+          {source.compounds_status === 'pending' || source.compounds_status === 'running' ? null : (
+            <div className="mt-2">
+              <CompoundList compounds={compounds} />
+            </div>
+          )}
         </div>
       ) : null}
 
@@ -183,7 +200,7 @@ async function loadSource(supabase: Supabase, id: string) {
   const { data } = await supabase
     .from('sources')
     .select(
-      'id, title, url, author, publication, published_date, captured_at, summary, source_type, status, ingest_status, ingest_error, interest_rating, word_count, reading_time_minutes, user_note, classification_truncated',
+      'id, title, url, author, publication, published_date, captured_at, summary, source_type, status, ingest_status, ingest_error, interest_rating, word_count, reading_time_minutes, user_note, classification_truncated, compounds_status, compounds_error',
     )
     .eq('id', id)
     .maybeSingle();
@@ -279,18 +296,22 @@ async function loadProductIdeas(
 ): Promise<CompoundItem[]> {
   const { data: links } = await supabase
     .from('source_product_ideas')
-    .select('product_idea_id, context, relevance_score')
+    .select('product_idea_id, context, relevance_score, chunk_id')
     .eq('source_id', sourceId);
 
   if (!links || links.length === 0) return [];
 
   const ideaIds = links.map((l) => l.product_idea_id);
-  const { data: ideas } = await supabase
-    .from('product_ideas')
-    .select('id, name, description, interest_rating')
-    .in('id', ideaIds);
+  const chunkIds = links.map((l) => l.chunk_id).filter((id): id is string => id !== null);
+  const [{ data: ideas }, { data: chunkRows }] = await Promise.all([
+    supabase.from('product_ideas').select('id, name, description, interest_rating').in('id', ideaIds),
+    chunkIds.length > 0
+      ? supabase.from('chunks').select('id, chunk_index').in('id', chunkIds)
+      : Promise.resolve({ data: [] as { id: string; chunk_index: number }[] }),
+  ]);
 
   const ideaById = new Map((ideas ?? []).map((i) => [i.id, i]));
+  const chunkIndexById = new Map((chunkRows ?? []).map((c) => [c.id, c.chunk_index]));
 
   const compounds: CompoundItem[] = [];
   for (const link of links) {
@@ -303,6 +324,7 @@ async function loadProductIdeas(
       context: link.context,
       relevanceScore: link.relevance_score,
       interestRating: idea.interest_rating,
+      chunkIndex: link.chunk_id ? (chunkIndexById.get(link.chunk_id) ?? null) : null,
     });
   }
 

@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
-import { runIngestPipeline } from '@/lib/pipeline/ingest';
+import { runCompoundStage, runIngestPipeline } from '@/lib/pipeline/ingest';
+
+// Covers the compound stage scheduled with `after()`, which runs within this
+// function's duration budget. On Vercel, 300s needs a plan that allows it.
+export const maxDuration = 300;
 
 /**
  * POST /api/feed/[id]/ingest — ingest a feed item into the main corpus.
@@ -9,6 +13,7 @@ import { runIngestPipeline } from '@/lib/pipeline/ingest';
  * 1. Creates a pending source row for the feed item's URL
  * 2. Runs the full ingest pipeline
  * 3. Updates the feed item's status to 'ingested' and links the new source
+ * 4. Schedules full-text compound extraction to run after the response
  */
 export async function POST(
   _request: Request,
@@ -74,6 +79,7 @@ export async function POST(
 
   // Run the pipeline
   const result = await runIngestPipeline(supabase, user.id, source.id, url);
+  after(() => runCompoundStage(supabase, user.id, source.id));
 
   // Update the feed item
   await supabase

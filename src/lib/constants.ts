@@ -107,4 +107,5 @@ export const PROTECTED_ROUTES = [
   '/funding',
   '/feed',
   '/capture',
+  '/maintenance',
 ] as const;

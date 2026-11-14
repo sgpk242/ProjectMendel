@@ -4,10 +4,11 @@ import type { Database } from '@/lib/types/database';
 
 import { chunk } from './chunk';
 import { classify } from './classify';
+import { extractCompounds } from './compounds';
 import { embed, meanVector } from './embed';
 import { extract } from './extract';
 import { checkSimilarity } from './similarity';
-import { store } from './store';
+import { store, storeCompounds } from './store';
 import type { IngestResult } from './types';
 
 /**
@@ -19,6 +20,10 @@ import type { IngestResult } from './types';
  * diagnosable from the row alone. On error, records `ingest_error`, bumps
  * `ingest_attempts`, sets status to `failed`, and re-throws — the route
  * handler is responsible for turning that into an HTTP response.
+ *
+ * Compounds are not extracted here: `store()` leaves `compounds_status =
+ * 'pending'` and the caller schedules `runCompoundStage()` afterwards, since
+ * full-text extraction can take minutes under Groq's rate limits.
  */
 export async function runIngestPipeline(
   supabase: SupabaseClient<Database>,
@@ -63,7 +68,6 @@ export async function runIngestPipeline(
       summary: classified.summary,
       sourceType: classified.sourceType,
       topics: classified.topics,
-      compounds: classified.compounds,
       wordCount: extracted.wordCount,
       readingTimeMinutes: extracted.readingTimeMinutes,
       chunkCount: chunks.length,
@@ -75,6 +79,87 @@ export async function runIngestPipeline(
     await recordFailure(supabase, sourceId, message);
     throw err;
   }
+}
+
+/**
+ * Extract compounds from an already-ingested source's full text and store
+ * them, tracking progress on `sources.compounds_status`. Reads everything it
+ * needs from the database, so it works both right after ingest and as a
+ * backfill over sources ingested before this stage existed.
+ *
+ * Never throws: a failure is recorded on the row (`compounds_status =
+ * 'failed'`, `compounds_error`) and returned, so a background caller has
+ * nothing to swallow.
+ */
+export async function runCompoundStage(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  sourceId: string,
+): Promise<{ ok: boolean; compoundCount: number; error: string | null }> {
+  try {
+    const { data: source, error: sourceError } = await supabase
+      .from('sources')
+      .select('full_text, title, source_type, ingest_status')
+      .eq('id', sourceId)
+      .single();
+    if (sourceError || !source) {
+      throw new Error(`Source not found: ${sourceError?.message ?? sourceId}`);
+    }
+    if (source.ingest_status !== 'complete' || !source.full_text) {
+      throw new Error('Source has not finished ingesting');
+    }
+
+    const { data: chunkRows, error: chunksError } = await supabase
+      .from('chunks')
+      .select('id, chunk_index, content, start_char, end_char')
+      .eq('source_id', sourceId)
+      .order('chunk_index');
+    if (chunksError) throw new Error(`Failed to load chunks: ${chunksError.message}`);
+
+    await setCompoundsStatus(supabase, sourceId, 'running', null);
+
+    const result = await extractCompounds(
+      source.full_text,
+      (chunkRows ?? []).map((c) => ({
+        index: c.chunk_index,
+        content: c.content,
+        startChar: c.start_char,
+        endChar: c.end_char,
+      })),
+      source.source_type,
+      source.title,
+    );
+
+    const chunkIdByIndex = new Map((chunkRows ?? []).map((c) => [c.chunk_index, c.id]));
+    await storeCompounds(supabase, userId, sourceId, result.compounds, chunkIdByIndex);
+
+    // Partial failure: the batches that succeeded are stored, and the
+    // failures are kept on the row as a warning rather than an error state.
+    const warning =
+      result.failedBatches.length > 0
+        ? `${result.failedBatches.length} of ${result.batchCount} batches failed: ${result.failedBatches.join('; ')}`
+        : null;
+    await setCompoundsStatus(supabase, sourceId, 'complete', warning);
+
+    return { ok: true, compoundCount: result.compounds.length, error: warning };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await setCompoundsStatus(supabase, sourceId, 'failed', message).catch(() => {});
+    return { ok: false, compoundCount: 0, error: message };
+  }
+}
+
+async function setCompoundsStatus(
+  supabase: SupabaseClient<Database>,
+  sourceId: string,
+  status: Database['public']['Enums']['compound_status'],
+  error: string | null,
+): Promise<void> {
+  const { error: updateError } = await supabase
+    .from('sources')
+    .update({ compounds_status: status, compounds_error: error })
+    .eq('id', sourceId);
+  if (updateError) throw new Error(`Failed to update compounds_status: ${updateError.message}`);
 }
 
 async function setStatus(

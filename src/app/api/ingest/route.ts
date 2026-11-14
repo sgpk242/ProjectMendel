@@ -1,13 +1,14 @@
 import { after, NextResponse } from 'next/server';
 
-import { runIngestPipeline } from '@/lib/pipeline/ingest';
+import { runCompoundStage, runIngestPipeline } from '@/lib/pipeline/ingest';
 import { createClient } from '@/lib/supabase/server';
 import { canonicalizeUrl } from '@/lib/url';
 
-// Matches the Vercel Hobby cap. The sync path already ran this long before
-// async mode existed — `after()` doesn't change total duration, it just lets
-// the response go out first.
-export const maxDuration = 60;
+// Covers the ingest pipeline plus the compound stage scheduled with
+// `after()`, which runs within this function's duration budget and can take
+// minutes on a long paper under Groq's tokens-per-minute limits. On Vercel,
+// 300s needs a plan that allows it.
+export const maxDuration = 300;
 
 /**
  * POST /api/ingest — capture a URL and run it through the full pipeline.
@@ -18,6 +19,9 @@ export const maxDuration = 60;
  * insert the row, schedule the pipeline via `after()`, and respond
  * immediately (202) with just the new source id — the pipeline finishes in
  * the background and `ingest_status` on the row tracks its progress.
+ *
+ * Either way, full-text compound extraction is scheduled via `after()` once
+ * ingest succeeds; `compounds_status` on the row tracks it.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -104,6 +108,7 @@ export async function POST(request: Request) {
     after(async () => {
       try {
         await runIngestPipeline(supabase, user.id, source.id, url);
+        await runCompoundStage(supabase, user.id, source.id);
       } catch {
         // runIngestPipeline already records the failure on the row.
       }
@@ -113,6 +118,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await runIngestPipeline(supabase, user.id, source.id, url);
+    after(() => runCompoundStage(supabase, user.id, source.id));
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -16,7 +16,8 @@ type StoreInput = {
 
 /**
  * Persist a completed ingest: update the source row, upsert its topics, and
- * insert its chunks. Runs through the caller's authenticated client, so RLS
+ * insert its chunks. Compounds are stored later, by `storeCompounds()`, once
+ * the separate compound stage has run over the full text. Runs through the caller's authenticated client, so RLS
  * applies exactly as it would for any other user-initiated write.
  */
 export async function store(
@@ -45,13 +46,14 @@ export async function store(
       ingest_status: 'complete',
       ingest_error: null,
       classification_truncated: classify.truncated,
+      compounds_status: 'pending',
+      compounds_error: null,
     })
     .eq('id', sourceId);
 
   if (sourceError) throw new Error(`Failed to update source: ${sourceError.message}`);
 
   const topicIds = await upsertTopics(supabase, userId, sourceId, classify.topics);
-  await upsertProductIdeas(supabase, userId, sourceId, classify.compounds);
 
   if (chunks.length > 0) {
     const { error: chunksError } = await supabase.from('chunks').insert(
@@ -136,12 +138,17 @@ async function upsertTopics(
  * Upsert product ideas (biomanufacturing compounds) by case-insensitive name
  * and link them to the source. Same select-then-insert pattern as
  * `upsertTopics()` because PostgREST can't target the expression index.
+ *
+ * Links upsert on (source_id, product_idea_id), so re-running extraction on
+ * a source updates the links it finds again and leaves any others in place.
+ * `chunkIdByIndex` maps `chunks.chunk_index` → `chunks.id` for `chunk_id`.
  */
-async function upsertProductIdeas(
+export async function storeCompounds(
   supabase: SupabaseClient<Database>,
   userId: string,
   sourceId: string,
   compounds: CompoundSuggestion[],
+  chunkIdByIndex: Map<number, string>,
 ): Promise<void> {
   if (compounds.length === 0) return;
 
@@ -184,6 +191,7 @@ async function upsertProductIdeas(
     product_idea_id: string;
     context: string | null;
     relevance_score: number;
+    chunk_id: string | null;
   }[] = [];
 
   for (const compound of compounds) {
@@ -194,6 +202,7 @@ async function upsertProductIdeas(
       product_idea_id: ideaId,
       context: compound.context || null,
       relevance_score: compound.relevanceScore,
+      chunk_id: chunkIdByIndex.get(compound.chunkIndex) ?? null,
     });
   }
 
