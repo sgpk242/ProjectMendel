@@ -18,7 +18,7 @@ via Android share sheet (PWA). Chat is still a stub.
 | Styling | Tailwind CSS v4 |
 | Database | Supabase Postgres + pgvector |
 | Auth | Supabase email/password |
-| Embeddings | Cohere `embed-v4.0` @ 1024 dims, via Vercel AI Gateway |
+| Embeddings | Cohere `embed-v4.0` @ 1024 dims, called directly (`api.cohere.com`) |
 | Hosting | Vercel (later — local dev for now) |
 
 ## Setup
