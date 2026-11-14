@@ -1,6 +1,7 @@
 /**
- * Where "Commercial" feed queries search. Edit freely: each entry is a
- * domain passed to Jina Search as a `site=` filter.
+ * Where "Commercial" feed queries search, and what "News (open web)" queries
+ * leave out so the two don't overlap. Edit freely: each entry is a domain
+ * (subdomains included).
  */
 export const COMMERCIAL_SITES = [
   // Press-release wires — where most company announcements are first posted

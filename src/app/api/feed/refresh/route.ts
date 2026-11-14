@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
 import { searchOpenAlex } from '@/lib/feed/openalex';
-import { searchCommercial, searchJina } from '@/lib/feed/jina-search';
+import { searchCommercial, searchNews } from '@/lib/feed/jina-search';
 
 /**
  * POST /api/feed/refresh — run all enabled feed queries and fetch new items.
@@ -56,7 +56,7 @@ export async function POST() {
           ? await searchOpenAlex(query.query_text)
           : query.source_type === 'commercial'
             ? await searchCommercial(query.query_text)
-            : await searchJina(query.query_text);
+            : await searchNews(query.query_text);
 
       if (results.length === 0) {
         // Update last_run_at even with no results

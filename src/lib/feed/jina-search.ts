@@ -31,14 +31,19 @@ type JinaSearchResponse = {
 /**
  * Search the web via Jina Search for news and articles matching `query`.
  * `sites` restricts results to those domains (Jina's repeated `site=`
- * parameter).
+ * parameter); `excludeSites` drops results from those domains (and their
+ * subdomains) after the search, since Jina has no exclusion parameter.
  *
  * Returns up to `limit` results. No native dedup ID — we use a SHA-256 of
  * the URL as the external ID.
  */
 export async function searchJina(
   query: string,
-  { limit = 10, sites = [] }: { limit?: number; sites?: string[] } = {},
+  {
+    limit = 10,
+    sites = [],
+    excludeSites = [],
+  }: { limit?: number; sites?: string[]; excludeSites?: string[] } = {},
 ): Promise<JinaSearchResult[]> {
   const apiKey = process.env.JINA_API_KEY;
   if (!apiKey) throw new Error('JINA_API_KEY is not set');
@@ -61,6 +66,7 @@ export async function searchJina(
 
   return (body.data ?? [])
     .filter((item) => item.title && item.url)
+    .filter((item) => !isOnSite(item.url!, excludeSites))
     .slice(0, limit)
     .map((item) => ({
       externalId: createHash('sha256').update(item.url!).digest('hex'),
@@ -79,4 +85,23 @@ export async function searchJina(
 export function searchCommercial(query: string): Promise<JinaSearchResult[]> {
   const fullQuery = COMMERCIAL_QUERY_TERMS ? `${query} ${COMMERCIAL_QUERY_TERMS}` : query;
   return searchJina(fullQuery, { sites: COMMERCIAL_SITES });
+}
+
+/**
+ * Open-web news search that leaves out the commercial sites, so "News" and
+ * "Commercial" queries don't spend their results on the same publications.
+ */
+export function searchNews(query: string): Promise<JinaSearchResult[]> {
+  return searchJina(query, { excludeSites: COMMERCIAL_SITES });
+}
+
+function isOnSite(url: string, sites: string[]): boolean {
+  if (sites.length === 0) return false;
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+  } catch {
+    return false;
+  }
+  return sites.some((site) => host === site || host.endsWith(`.${site}`));
 }
