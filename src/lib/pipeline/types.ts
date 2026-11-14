@@ -1,4 +1,4 @@
-import type { SourceType } from '@/lib/constants';
+import type { CompoundMarket, SourceType } from '@/lib/constants';
 
 /**
  * Shared intermediate types for the ingest pipeline.
@@ -38,6 +38,8 @@ export type CompoundSuggestion = {
   relevanceScore: number;
   /** `chunks.chunk_index` of the passage `context` was taken from. */
   chunkIndex: number;
+  /** Which market the compound mainly serves; null if the model didn't say. */
+  market: CompoundMarket | null;
 };
 
 /** Output of `classify()` — the LLM's read of the article. */

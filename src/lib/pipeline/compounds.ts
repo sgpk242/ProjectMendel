@@ -1,6 +1,12 @@
 import Groq from 'groq-sdk';
 
-import { SOURCE_TYPE_LABELS, type SourceType } from '@/lib/constants';
+import {
+  COMPOUND_MARKETS,
+  COMPOUND_MARKET_DEFINITIONS,
+  SOURCE_TYPE_LABELS,
+  type CompoundMarket,
+  type SourceType,
+} from '@/lib/constants';
 
 import type { CompoundSuggestion } from './types';
 
@@ -74,7 +80,7 @@ type Batch = {
 const SYSTEM_PROMPT = `You extract biomanufacturing compounds and products from one excerpt of a longer document. The document may be a scientific paper, company press release, white paper, news article, report, or blog post. The excerpt is split into passages, each starting with a marker like [[chunk 12]].
 
 Return a JSON object: { "compounds": [ ... ] }. Each compound:
-{ "name": string, "aliases": string[], "description": string, "context": string, "relevanceScore": number 0.0-1.0, "chunkIndex": number }
+{ "name": string, "aliases": string[], "description": string, "context": string, "relevanceScore": number 0.0-1.0, "chunkIndex": number, "market": "industrial" | "pharma" | "both" }
 
 Rules:
 - Only use the document's own substantive content: for papers, the introduction, methods, results and discussion; for press releases, news, white papers and blogs, the announcement or analysis itself.
@@ -85,6 +91,7 @@ Rules:
 - "description": what it is and why it matters for biomanufacturing, in one sentence.
 - "context": a short quote or close paraphrase of where the text discusses it.
 - "chunkIndex": the number from the [[chunk N]] marker of the passage that context comes from.
+- "market": the compound's main commercial market in general, not just in this document. "industrial" = ${COMPOUND_MARKET_DEFINITIONS.industrial}; "pharma" = ${COMPOUND_MARKET_DEFINITIONS.pharma}; "both" = ${COMPOUND_MARKET_DEFINITIONS.both}.
 - If there are none, return { "compounds": [] }.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary.`;
@@ -171,6 +178,7 @@ async function extractFromBatch(
         context: typeof c.context === 'string' ? c.context.trim() : '',
         relevanceScore: clamp01(typeof c.relevanceScore === 'number' ? c.relevanceScore : 0.5),
         chunkIndex,
+        market: COMPOUND_MARKETS.includes(c.market as CompoundMarket) ? (c.market as CompoundMarket) : null,
       };
     })
     .filter((c) => c.name.length > 0);
@@ -297,9 +305,17 @@ function mergeCompounds(all: CompoundSuggestion[]): CompoundSuggestion[] {
       context: best.context,
       relevanceScore: best.relevanceScore,
       chunkIndex: best.chunkIndex,
+      market: mergeMarkets(prev.market, c.market),
     });
   }
   return [...byName.values()].sort((a, b) => b.relevanceScore - a.relevanceScore);
+}
+
+/** Batches disagreeing (industrial vs pharma) means the compound serves both. */
+export function mergeMarkets(a: CompoundMarket | null, b: CompoundMarket | null): CompoundMarket | null {
+  if (!a) return b;
+  if (!b || a === b) return a;
+  return 'both';
 }
 
 function dedupeStrings(values: string[]): string[] {

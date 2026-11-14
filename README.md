@@ -172,7 +172,7 @@ Three intelligence tiles sit above the source list on `/dashboard`:
 | Tile | What it does | Data source |
 |---|---|---|
 | **Funding Opportunities** | Manually tracked grants — title, org, amount, deadline, link. CRUD via `/api/funding`. Full management at `/funding`. | `funding_opportunities` table |
-| **Product Idea Radar** | Biomanufacturing compounds auto-extracted by the LLM during ingestion. Visible per-source on the detail page; appears on the dashboard only once you assign an interest rating (1-5). | `product_ideas` + `source_product_ideas` junction |
+| **Product Idea Radar** | Biomanufacturing compounds auto-extracted by the LLM during ingestion. Visible per-source on the detail page; appears on the dashboard only once you assign an interest rating (1-5). An **Industrial / Pharma** toggle filters by each compound's market tag (set during extraction, backfilled on `/maintenance`, editable on the product page); compounds tagged Both, or not yet tagged, show under either. | `product_ideas` + `source_product_ideas` junction |
 | **Web-Scraped Sources for Review** | Discovers papers (OpenAlex), open-web news (Jina Search), and commercial news (Jina Search restricted to press-release wires and trade press listed in `src/lib/feed/commercial-sites.ts`, with deal terms added) matching your queries. Queries can be custom or bulk-imported from existing topics (as OpenAlex queries). Manual refresh trigger; items are triaged and one-click ingested into the corpus. Full view at `/feed`. | `feed_queries` + `feed_items` tables |
 
 ## Theses

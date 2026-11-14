@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 
+import { COMPOUND_MARKETS, type CompoundMarket } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import type { TablesUpdate } from '@/lib/types/database';
 
-/** PATCH /api/product-ideas/[id] — update a product idea (rating, notes, description). */
+/** PATCH /api/product-ideas/[id] — update a product idea (rating, notes, description, market). */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -26,7 +27,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { interest_rating, notes, description } = (body ?? {}) as Record<string, unknown>;
+  const { interest_rating, notes, description, market } = (body ?? {}) as Record<string, unknown>;
 
   const updates: TablesUpdate<'product_ideas'> = {};
 
@@ -56,6 +57,16 @@ export async function PATCH(
 
   if (description !== undefined) {
     updates.description = typeof description === 'string' ? description.trim() || null : null;
+  }
+
+  if (market !== undefined) {
+    if (market !== null && !COMPOUND_MARKETS.includes(market as CompoundMarket)) {
+      return NextResponse.json(
+        { error: `market must be one of: ${COMPOUND_MARKETS.join(', ')}, or null` },
+        { status: 400 },
+      );
+    }
+    updates.market = market as CompoundMarket | null;
   }
 
   if (Object.keys(updates).length === 0) {

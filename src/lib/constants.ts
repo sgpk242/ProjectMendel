@@ -56,6 +56,30 @@ export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
 };
 
 // ---------------------------------------------------------------------------
+// Compound markets (Product Idea Radar toggle)
+// ---------------------------------------------------------------------------
+
+export const COMPOUND_MARKETS = ['industrial', 'pharma', 'both'] as const;
+export type CompoundMarket = (typeof COMPOUND_MARKETS)[number];
+
+export const COMPOUND_MARKET_LABELS: Record<CompoundMarket, string> = {
+  industrial: 'Industrial',
+  pharma: 'Pharma',
+  both: 'Both',
+};
+
+/**
+ * Definitions given to the model when it tags compounds; also the tooltips
+ * on the product page picker.
+ */
+export const COMPOUND_MARKET_DEFINITIONS: Record<CompoundMarket, string> = {
+  industrial:
+    'food and feed ingredients, sweeteners, flavors, proteins, nutraceuticals, chemicals, fuels, materials, cosmetics, agriculture',
+  pharma: 'active pharmaceutical ingredients, pharma starting materials and intermediates, drug and vaccine components',
+  both: 'meaningful commercial use in both industrial and pharma markets (e.g. squalene: cosmetics and vaccine adjuvant)',
+};
+
+// ---------------------------------------------------------------------------
 // Funding opportunities
 // ---------------------------------------------------------------------------
 

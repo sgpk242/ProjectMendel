@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { DelistButton } from '@/components/product/delist-button';
+import { MarketPicker } from '@/components/product/market-picker';
 import { ProductNoteEditor } from '@/components/product/product-note-editor';
 import { PageShell } from '@/components/ui/page-shell';
 import { createClient } from '@/lib/supabase/server';
@@ -67,6 +68,9 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
         <div className="min-w-0">
           <h1 className="text-2xl font-semibold tracking-tight">Product Details</h1>
           <p className="mt-1 text-lg text-foreground">{product.name}</p>
+          <div className="mt-2">
+            <MarketPicker productId={product.id} market={product.market} />
+          </div>
         </div>
         <DelistButton productId={product.id} />
       </div>
@@ -127,7 +131,7 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
 async function loadProduct(supabase: Supabase, id: string) {
   const { data } = await supabase
     .from('product_ideas')
-    .select('id, name, notes, wikipedia_extract, wikipedia_url')
+    .select('id, name, notes, wikipedia_extract, wikipedia_url, market')
     .eq('id', id)
     .maybeSingle();
   return data;

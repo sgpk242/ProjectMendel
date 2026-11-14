@@ -330,6 +330,7 @@ export type Database = {
           pubchem_cid: number | null;
           canonical_name: string | null;
           synonyms: string[];
+          market: Database['public']['Enums']['compound_market'] | null;
           created_at: string;
           updated_at: string;
         };
@@ -345,6 +346,7 @@ export type Database = {
           pubchem_cid?: number | null;
           canonical_name?: string | null;
           synonyms?: string[];
+          market?: Database['public']['Enums']['compound_market'] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -360,6 +362,7 @@ export type Database = {
           pubchem_cid?: number | null;
           canonical_name?: string | null;
           synonyms?: string[];
+          market?: Database['public']['Enums']['compound_market'] | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -671,6 +674,7 @@ export type Database = {
       compound_status: 'pending' | 'running' | 'complete' | 'failed';
       thesis_status: 'open' | 'confirmed' | 'refuted' | 'unresolved';
       thesis_stance: 'supports' | 'contradicts' | 'context';
+      compound_market: 'industrial' | 'pharma' | 'both';
     };
 
     CompositeTypes: Record<never, never>;

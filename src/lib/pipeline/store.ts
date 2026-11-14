@@ -1,10 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import { EMBEDDING_MODEL } from '@/lib/constants';
+import { COMPOUND_MARKETS, EMBEDDING_MODEL, type CompoundMarket } from '@/lib/constants';
 import { toVector } from '@/lib/embedding';
 import { normalizeName, resolveCompounds, type CompoundLookup } from '@/lib/pubchem';
 import type { Database } from '@/lib/types/database';
 
+import { mergeMarkets } from './compounds';
 import type { ChunkData, ClassifyResult, CompoundSuggestion, ExtractResult } from './types';
 
 type StoreInput = {
@@ -161,7 +162,7 @@ export async function storeCompounds(
 
   const [lookups, existingResult] = await Promise.all([
     resolveCompounds(supabase, compounds),
-    supabase.from('product_ideas').select('id, name, pubchem_cid').eq('user_id', userId),
+    supabase.from('product_ideas').select('id, name, pubchem_cid, market').eq('user_id', userId),
   ]);
   if (existingResult.error) {
     throw new Error(`Failed to load existing product ideas: ${existingResult.error.message}`);
@@ -169,6 +170,9 @@ export async function storeCompounds(
 
   const idByCid = new Map<number, string>();
   const idByName = new Map<string, string>();
+  const untaggedIds = new Set(
+    (existingResult.data ?? []).filter((row) => row.market === null).map((row) => row.id),
+  );
   for (const row of existingResult.data ?? []) {
     if (row.pubchem_cid !== null) idByCid.set(row.pubchem_cid, row.id);
     idByName.set(normalizeName(row.name), row.id);
@@ -204,6 +208,7 @@ export async function storeCompounds(
           pubchem_cid: lookup?.cid ?? null,
           canonical_name: lookup?.canonicalName ?? null,
           synonyms: lookup?.synonyms ?? [],
+          market: compound.market,
         })),
       )
       .select('id, name, pubchem_cid');
@@ -248,6 +253,25 @@ export async function storeCompounds(
       chunk_id: chunkIdByIndex.get(compound.chunkIndex) ?? null,
     });
   });
+
+  // Tag existing compounds that have no market yet. Never overrides a tag,
+  // since it may have been set by hand on the product page.
+  const tagById = new Map<string, CompoundMarket>();
+  compounds.forEach((compound, i) => {
+    const ideaId = findExisting(compound, lookups[i]);
+    if (!ideaId || !untaggedIds.has(ideaId) || !compound.market) return;
+    tagById.set(ideaId, mergeMarkets(tagById.get(ideaId) ?? null, compound.market)!);
+  });
+  for (const market of COMPOUND_MARKETS) {
+    const ids = [...tagById].filter(([, m]) => m === market).map(([id]) => id);
+    if (ids.length === 0) continue;
+    const { error: tagError } = await supabase
+      .from('product_ideas')
+      .update({ market })
+      .in('id', ids)
+      .is('market', null);
+    if (tagError) throw new Error(`Failed to tag compound markets: ${tagError.message}`);
+  }
 
   if (links.size > 0) {
     const { error: linkError } = await supabase

@@ -232,19 +232,21 @@ async function loadFunding(supabase: Supabase): Promise<FundingTileItem[]> {
 async function loadRatedProductIdeas(supabase: Supabase): Promise<RatedProductIdea[]> {
   const { data } = await supabase
     .from('product_ideas')
-    .select('id, name, description, interest_rating, source_product_ideas(source_id)')
+    .select('id, name, description, interest_rating, market, source_product_ideas(source_id)')
     // 0 is "de-listed" (set via the product page's De-list button) —
     // excluded the same as null ("never rated").
     .not('interest_rating', 'is', null)
     .gt('interest_rating', 0)
     .order('interest_rating', { ascending: false })
-    .limit(10);
+    // The tile shows the top 10 per market tab, so load enough for both.
+    .limit(50);
 
   return (data ?? []).map((idea) => ({
     id: idea.id,
     name: idea.name,
     description: idea.description,
     interest_rating: idea.interest_rating!,
+    market: idea.market,
     source_count: Array.isArray(idea.source_product_ideas)
       ? idea.source_product_ideas.length
       : 0,
