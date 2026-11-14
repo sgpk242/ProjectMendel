@@ -41,7 +41,6 @@ export default async function ThesesPage() {
   const items: ThesisItem[] = (theses ?? []).map((t) => ({
     id: t.id,
     claim: t.claim,
-    confidence: t.confidence,
     changeMyMind: t.change_my_mind,
     reviewDate: t.review_date,
     status: t.status,

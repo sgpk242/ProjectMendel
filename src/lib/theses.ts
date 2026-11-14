@@ -31,18 +31,6 @@ export function parseThesisFields(
     fields.claim = input.claim.trim();
   }
 
-  if (input.confidence !== undefined) {
-    if (input.confidence === null) fields.confidence = null;
-    else if (
-      typeof input.confidence !== 'number' ||
-      !Number.isInteger(input.confidence) ||
-      input.confidence < 0 ||
-      input.confidence > 100
-    ) {
-      return { error: 'confidence must be an integer from 0 to 100, or null' };
-    } else fields.confidence = input.confidence;
-  }
-
   for (const key of ['change_my_mind', 'resolution_note'] as const) {
     if (input[key] === undefined) continue;
     const value = optionalText(input[key], key);

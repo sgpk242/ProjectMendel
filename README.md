@@ -177,13 +177,16 @@ Three intelligence tiles sit above the source list on `/dashboard`:
 
 ## Theses
 
-`/theses` records calls about where the industry is going: a claim, a
-confidence (0–100%), what would change your mind, and a review date. Theses
+`/theses` records calls about where the industry is going: a claim, what
+would change your mind, and a review date. Theses
 are sorted by review date, and open ones past it are flagged overdue.
 Resolving one (confirmed / refuted / unresolved) records a note and the
 date. On any source's detail page, link the source to a thesis with a
 stance — supports, contradicts, or context — so evidence accumulates on
-each call. Tables: `theses`, `thesis_sources` (migration 013).
+each call. Saving a thesis also searches your library for related sources
+(the claim is embedded and matched against every chunk, best passage per
+source) and lists them on the thesis; nothing is linked until you pick a
+stance. Tables: `theses`, `thesis_sources` (migrations 013–014).
 
 ## Mobile capture (Android)
 

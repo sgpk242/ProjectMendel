@@ -421,7 +421,6 @@ export type Database = {
           id: string;
           user_id: string;
           claim: string;
-          confidence: number | null;
           change_my_mind: string | null;
           review_date: string | null;
           status: Database['public']['Enums']['thesis_status'];
@@ -434,7 +433,6 @@ export type Database = {
           id?: string;
           user_id: string;
           claim: string;
-          confidence?: number | null;
           change_my_mind?: string | null;
           review_date?: string | null;
           status?: Database['public']['Enums']['thesis_status'];
@@ -447,7 +445,6 @@ export type Database = {
           id?: string;
           user_id?: string;
           claim?: string;
-          confidence?: number | null;
           change_my_mind?: string | null;
           review_date?: string | null;
           status?: Database['public']['Enums']['thesis_status'];
