@@ -160,12 +160,13 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
             <div className="mt-2 rounded-md border border-red-700/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
               <p className="font-medium">Compound extraction failed</p>
               {source.compounds_error ? (
-                <p className="mt-1 text-red-300/80">{source.compounds_error}</p>
+                <p className="mt-1 break-words text-red-300/80">{source.compounds_error}</p>
               ) : null}
             </div>
           ) : source.compounds_error ? (
-            <p className="mt-2 text-xs text-yellow-300/80">
-              Some of this source couldn&apos;t be read for compounds: {source.compounds_error}
+            <p className="mt-2 break-words text-xs text-yellow-300/80">
+              Some of this source couldn&apos;t be read for compounds: {source.compounds_error}. Re-run it
+              from Maintenance.
             </p>
           ) : null}
           {source.compounds_status === 'pending' || source.compounds_status === 'running' ? null : (

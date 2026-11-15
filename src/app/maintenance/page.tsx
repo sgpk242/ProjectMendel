@@ -13,12 +13,15 @@ export default async function MaintenancePage() {
   } = await supabase.auth.getUser();
 
   // compounds_status null = compounds were extracted the legacy way (first
-  // 12K characters only); failed = the full-text stage errored.
+  // 12K characters only); failed = the full-text stage errored; complete
+  // with compounds_error = some batches failed (partially extracted).
   const { data: sources } = await supabase
     .from('sources')
-    .select('id, title, url, compounds_status')
+    .select('id, title, url, compounds_status, compounds_error')
     .eq('ingest_status', 'complete')
-    .or('compounds_status.is.null,compounds_status.eq.failed')
+    .or(
+      'compounds_status.is.null,compounds_status.eq.failed,and(compounds_status.eq.complete,compounds_error.not.is.null)',
+    )
     .order('captured_at', { ascending: true });
 
   const mergePlan = await buildMergePlan(supabase);
@@ -69,7 +72,12 @@ export default async function MaintenancePage() {
             sources={(sources ?? []).map((s) => ({
               id: s.id,
               title: s.title || s.url,
-              failed: s.compounds_status === 'failed',
+              state:
+                s.compounds_status === 'failed'
+                  ? ('failed' as const)
+                  : s.compounds_status === 'complete'
+                    ? ('partial' as const)
+                    : ('legacy' as const),
             }))}
           />
         </div>

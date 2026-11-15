@@ -1,4 +1,4 @@
-import Groq from 'groq-sdk';
+import Groq, { APIConnectionTimeoutError, APIError } from 'groq-sdk';
 
 import {
   COMPOUND_MARKETS,
@@ -13,18 +13,42 @@ import type { CompoundSuggestion } from './types';
 const MODEL = 'openai/gpt-oss-120b';
 
 /**
- * Upper bound on the text sent per Groq call (~4K tokens). Small enough to
- * stay well inside a free-tier tokens-per-minute budget per request, large
- * enough that a typical press release or news piece is a single batch.
+ * Groq counts a request's input tokens PLUS its `max_tokens` against the
+ * account's tokens-per-minute (TPM) limit, and rejects (413, not retryable)
+ * any single request asking for more than that. Batch size and `max_tokens`
+ * are derived from the limit so every request fits: set `GROQ_TPM_LIMIT` to
+ * your tier's limit (free tier: 8000) and batches scale with it.
  */
-const BATCH_CHARS = 16_000;
-
+const DEFAULT_TPM_LIMIT = 8000;
+/** Fraction of the TPM limit one request may use. */
+const REQUEST_SHARE = 0.85;
+/** Fraction of a request's budget reserved for the response. */
+const OUTPUT_SHARE = 0.4;
+const MAX_OUTPUT_TOKENS = 6144;
+/** System prompt + document header, rounded up. */
+const PROMPT_TOKENS = 900;
+/** Conservative: dense scientific text can run close to 3 chars/token. */
+const CHARS_PER_TOKEN = 3;
 /**
- * Parallel Groq calls per source. Groq's limits are mostly tokens/minute, so
- * more parallelism mostly means more 429s; the client's retries (which
- * honour `retry-after`) absorb what this lets through.
+ * Upper bound regardless of tier: past this, one response would have to list
+ * too many compounds to fit `MAX_OUTPUT_TOKENS`.
  */
-const CONCURRENCY = 2;
+const MAX_BATCH_CHARS = 24_000;
+
+type Budget = { maxTokens: number; batchChars: number; concurrency: number };
+
+export function tokenBudget(tpmLimit = Number(process.env.GROQ_TPM_LIMIT) || DEFAULT_TPM_LIMIT): Budget {
+  const perRequest = Math.floor(tpmLimit * REQUEST_SHARE);
+  const maxTokens = Math.min(MAX_OUTPUT_TOKENS, Math.floor(perRequest * OUTPUT_SHARE));
+  const batchChars = Math.min(
+    MAX_BATCH_CHARS,
+    Math.max(2000, (perRequest - maxTokens - PROMPT_TOKENS) * CHARS_PER_TOKEN),
+  );
+  // At the free-tier limit, a second request in parallel just collides with
+  // the first on the per-minute budget; above it, two at a time is useful.
+  const concurrency = tpmLimit <= DEFAULT_TPM_LIMIT ? 1 : 2;
+  return { maxTokens, batchChars, concurrency };
+}
 
 /**
  * End-matter headings only count after this fraction of the document, so an
@@ -68,14 +92,21 @@ export type ChunkSpan = {
 export type ExtractCompoundsResult = {
   compounds: CompoundSuggestion[];
   batchCount: number;
-  /** Error messages from batches that failed after retries (others still count). */
+  /** Short reasons for batches that failed after retries (others still count). */
   failedBatches: string[];
 };
 
-type Batch = {
-  text: string;
-  chunkIndexes: number[];
-};
+/** One chunk's text as sent to the model, after overlap and end matter are trimmed. */
+type Piece = { index: number; text: string };
+
+type Batch = { pieces: Piece[] };
+
+/** The model stopped at `max_tokens` and its JSON couldn't be parsed. */
+class OutputCutOffError extends Error {
+  constructor() {
+    super('output cut off');
+  }
+}
 
 const SYSTEM_PROMPT = `You extract biomanufacturing compounds and products from one excerpt of a longer document. The document may be a scientific paper, company press release, white paper, news article, report, or blog post. The excerpt is split into passages, each starting with a marker like [[chunk 12]].
 
@@ -101,9 +132,11 @@ Respond with ONLY valid JSON — no markdown fences, no commentary.`;
  *
  * Works from the stored chunks: drops end matter (references, press-release
  * boilerplate, related-article lists) and link-only chunks, groups the rest
- * into consecutive batches of up to `BATCH_CHARS`, sends each batch to Groq
- * with `[[chunk N]]` markers so every compound can be traced to its chunk,
- * then merges results across batches by normalized name.
+ * into consecutive batches sized to fit Groq's per-minute token limit (see
+ * `tokenBudget()`), sends each batch with `[[chunk N]]` markers so every
+ * compound can be traced to its chunk, then merges results across batches
+ * by normalized name. A batch Groq still rejects as too large, or whose
+ * output is cut off, is split in half and retried.
  */
 export async function extractCompounds(
   fullText: string,
@@ -111,56 +144,98 @@ export async function extractCompounds(
   sourceType: SourceType,
   title: string | null,
 ): Promise<ExtractCompoundsResult> {
+  const budget = tokenBudget();
   const kept = selectBodyChunks(fullText, chunks);
-  const batches = buildBatches(fullText, kept, endMatterCutoff(fullText));
+  const batches = buildBatches(fullText, kept, endMatterCutoff(fullText), budget.batchChars);
   if (batches.length === 0) return { compounds: [], batchCount: 0, failedBatches: [] };
 
-  const client = new Groq({ maxRetries: 6, timeout: 120_000 });
+  const client = new Groq({ maxRetries: 6, timeout: 180_000 });
   const header = `Document title: ${title ?? '(unknown)'}\nSource type: ${SOURCE_TYPE_LABELS[sourceType]}`;
 
   const failedBatches: string[] = [];
-  const results = await mapWithConcurrency(batches, CONCURRENCY, async (batch, i) => {
+  const results = await mapWithConcurrency(batches, budget.concurrency, async (batch) => {
     try {
-      return await extractFromBatch(client, header, batch);
+      return await extractWithSplitting(client, header, batch, budget.maxTokens);
     } catch (err) {
-      failedBatches.push(`batch ${i + 1}: ${err instanceof Error ? err.message : String(err)}`);
+      failedBatches.push(shortReason(err));
       return [];
     }
   });
 
   if (failedBatches.length === batches.length) {
-    throw new Error(`Compound extraction failed for every batch — ${failedBatches[0]}`);
+    throw new Error(`Compound extraction failed: ${summarizeFailures(failedBatches, batches.length)}`);
   }
 
   return { compounds: mergeCompounds(results.flat()), batchCount: batches.length, failedBatches };
+}
+
+/**
+ * Extract from one batch; if Groq rejects it as too large for the per-minute
+ * token limit, or the output is cut off, split it in half by chunk and try
+ * each half. A single chunk that still fails is a real failure.
+ */
+async function extractWithSplitting(
+  client: Groq,
+  header: string,
+  batch: Batch,
+  maxTokens: number,
+): Promise<CompoundSuggestion[]> {
+  try {
+    return await extractFromBatch(client, header, batch, maxTokens);
+  } catch (err) {
+    const splittable = isTooLarge(err) || err instanceof OutputCutOffError;
+    if (!splittable || batch.pieces.length < 2) throw err;
+    const mid = Math.ceil(batch.pieces.length / 2);
+    const first = await extractWithSplitting(client, header, { pieces: batch.pieces.slice(0, mid) }, maxTokens);
+    const second = await extractWithSplitting(client, header, { pieces: batch.pieces.slice(mid) }, maxTokens);
+    return [...first, ...second];
+  }
+}
+
+function batchText(batch: Batch): string {
+  return batch.pieces.map((p) => `[[chunk ${p.index}]]\n${p.text}\n\n`).join('');
 }
 
 async function extractFromBatch(
   client: Groq,
   header: string,
   batch: Batch,
+  maxTokens: number,
 ): Promise<CompoundSuggestion[]> {
   const response = await client.chat.completions.create({
     model: MODEL,
-    // gpt-oss is a reasoning model; its hidden reasoning tokens count
-    // against this too, and a compound-dense batch can list dozens.
-    max_tokens: 6144,
+    // Counts against the per-minute token limit along with the input, so it
+    // comes from tokenBudget(). Low reasoning effort keeps gpt-oss's hidden
+    // reasoning from eating the output budget.
+    max_tokens: maxTokens,
+    reasoning_effort: 'low',
     temperature: 0,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
-      { role: 'user', content: `${header}\n\n${batch.text}` },
+      { role: 'user', content: `${header}\n\n${batchText(batch)}` },
     ],
   });
 
-  const text = response.choices[0]?.message?.content;
-  if (!text) throw new Error('Groq returned no content');
+  const choice = response.choices[0];
+  const text = choice?.message?.content;
+  if (!text) {
+    if (choice?.finish_reason === 'length') throw new OutputCutOffError();
+    throw new Error('Groq returned no content');
+  }
 
-  const parsed = parseJsonObject(text);
+  let parsed: unknown;
+  try {
+    parsed = parseJsonObject(text);
+  } catch (err) {
+    if (choice.finish_reason === 'length') throw new OutputCutOffError();
+    throw err;
+  }
   const raw = (parsed as { compounds?: unknown }).compounds;
   if (!Array.isArray(raw)) return [];
 
-  const validIndexes = new Set(batch.chunkIndexes);
-  const fallbackIndex = batch.chunkIndexes[0];
+  const chunkIndexes = batch.pieces.map((p) => p.index);
+  const validIndexes = new Set(chunkIndexes);
+  const fallbackIndex = chunkIndexes[0];
 
   return raw
     .filter((c): c is Record<string, unknown> => typeof c === 'object' && c !== null)
@@ -249,13 +324,19 @@ function isLinkList(content: string): boolean {
 }
 
 /**
- * Group chunks into batches of up to `BATCH_CHARS`. Each chunk contributes
+ * Group chunks into batches of up to `batchChars`. Each chunk contributes
  * only the text past the previous chunk's end (chunks overlap by a
  * paragraph), clipped at the end-matter cutoff.
  */
-function buildBatches(fullText: string, chunks: ChunkSpan[], cutoff: number): Batch[] {
+export function buildBatches(
+  fullText: string,
+  chunks: ChunkSpan[],
+  cutoff: number,
+  batchChars: number,
+): Batch[] {
   const batches: Batch[] = [];
-  let current: Batch = { text: '', chunkIndexes: [] };
+  let current: Piece[] = [];
+  let currentLength = 0;
   let prevEnd = 0;
 
   for (const chunk of chunks) {
@@ -270,17 +351,43 @@ function buildBatches(fullText: string, chunks: ChunkSpan[], cutoff: number): Ba
     }
     if (!segment) continue;
 
-    const piece = `[[chunk ${chunk.index}]]\n${segment}\n\n`;
-    if (current.text.length > 0 && current.text.length + piece.length > BATCH_CHARS) {
-      batches.push(current);
-      current = { text: '', chunkIndexes: [] };
+    const pieceLength = segment.length + 20; // + the [[chunk N]] marker
+    if (current.length > 0 && currentLength + pieceLength > batchChars) {
+      batches.push({ pieces: current });
+      current = [];
+      currentLength = 0;
     }
-    current.text += piece;
-    current.chunkIndexes.push(chunk.index);
+    current.push({ index: chunk.index, text: segment });
+    currentLength += pieceLength;
   }
 
-  if (current.text.length > 0) batches.push(current);
+  if (current.length > 0) batches.push({ pieces: current });
   return batches;
+}
+
+function isTooLarge(err: unknown): boolean {
+  return err instanceof APIError && err.status === 413;
+}
+
+/** One short, readable reason per failed batch — no raw API payloads. */
+function shortReason(err: unknown): string {
+  if (isTooLarge(err)) return "too large for Groq's per-minute token limit";
+  if (err instanceof APIError && err.status === 429) return 'rate limited by Groq';
+  if (err instanceof OutputCutOffError) return 'output cut off';
+  if (err instanceof APIConnectionTimeoutError) return 'Groq request timed out';
+  const message = err instanceof Error ? err.message : String(err);
+  const firstLine = message.split(/[{\n]/)[0].trim() || message;
+  return firstLine.length > 120 ? `${firstLine.slice(0, 120)}…` : firstLine;
+}
+
+/** "5 of 10 batches failed: too large for Groq's per-minute token limit (×5)" */
+export function summarizeFailures(reasons: string[], total: number): string {
+  const counts = new Map<string, number>();
+  for (const r of reasons) counts.set(r, (counts.get(r) ?? 0) + 1);
+  const detail = [...counts]
+    .map(([reason, n]) => (n > 1 ? `${reason} (×${n})` : reason))
+    .join('; ');
+  return `${reasons.length} of ${total} batches failed: ${detail}`;
 }
 
 /**

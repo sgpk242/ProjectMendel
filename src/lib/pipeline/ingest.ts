@@ -4,7 +4,7 @@ import type { Database } from '@/lib/types/database';
 
 import { chunk } from './chunk';
 import { classify } from './classify';
-import { extractCompounds } from './compounds';
+import { extractCompounds, summarizeFailures } from './compounds';
 import { embed, meanVector } from './embed';
 import { extract } from './extract';
 import { checkSimilarity } from './similarity';
@@ -137,7 +137,7 @@ export async function runCompoundStage(
     // failures are kept on the row as a warning rather than an error state.
     const warning =
       result.failedBatches.length > 0
-        ? `${result.failedBatches.length} of ${result.batchCount} batches failed: ${result.failedBatches.join('; ')}`
+        ? summarizeFailures(result.failedBatches, result.batchCount)
         : null;
     await setCompoundsStatus(supabase, sourceId, 'complete', warning);
 

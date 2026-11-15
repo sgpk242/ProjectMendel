@@ -3,9 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-type SourceItem = { id: string; title: string; failed: boolean };
+type SourceItem = { id: string; title: string; state: 'legacy' | 'failed' | 'partial' };
 
-type Outcome = { ok: boolean; message: string };
+/** `message` is the one-line result; `detail` is the full reason, shown wrapped below it. */
+type Outcome = { ok: boolean; message: string; detail?: string };
 
 /**
  * Runs compound re-extraction over a list of sources, one request per
@@ -31,9 +32,13 @@ export function ReextractRunner({ sources }: { sources: SourceItem[] }) {
           body: JSON.stringify({ sourceId: source.id }),
         });
         const data = (await res.json()) as { ok?: boolean; compoundCount?: number; error?: string | null };
+        const count = `${data.compoundCount ?? 0} compounds`;
+        const failedPart = data.error?.match(/^\d+ of \d+ batches failed/)?.[0];
         outcome = data.ok
-          ? { ok: true, message: `${data.compoundCount ?? 0} compounds${data.error ? ` (warning: ${data.error})` : ''}` }
-          : { ok: false, message: data.error ?? `HTTP ${res.status}` };
+          ? data.error
+            ? { ok: true, message: failedPart ? `${count} · ${failedPart}` : `${count} · with warnings`, detail: data.error }
+            : { ok: true, message: count }
+          : { ok: false, message: 'Failed', detail: data.error ?? `HTTP ${res.status}` };
       } catch (err) {
         outcome = { ok: false, message: err instanceof Error ? err.message : String(err) };
       }
@@ -72,18 +77,28 @@ export function ReextractRunner({ sources }: { sources: SourceItem[] }) {
         {sources.map((s) => {
           const outcome = outcomes[s.id];
           return (
-            <li key={s.id} className="flex items-baseline justify-between gap-4">
-              <span className="min-w-0 truncate">
-                {s.title}
-                {s.failed && !outcome ? <span className="ml-2 text-xs text-red-300">previously failed</span> : null}
-              </span>
-              <span
-                className={`shrink-0 text-xs ${
-                  outcome ? (outcome.ok ? 'text-accent' : 'text-red-300') : 'text-muted'
-                }`}
-              >
-                {currentId === s.id ? 'running…' : outcome ? outcome.message : 'pending'}
-              </span>
+            <li key={s.id}>
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="min-w-0 truncate">
+                  {s.title}
+                  {s.state !== 'legacy' && !outcome ? (
+                    <span className="ml-2 text-xs text-yellow-300">
+                      {s.state === 'failed' ? 'previously failed' : 'partially extracted'}
+                    </span>
+                  ) : null}
+                </span>
+                <span
+                  title={outcome?.detail}
+                  className={`shrink-0 text-xs ${
+                    outcome ? (outcome.ok && !outcome.detail ? 'text-accent' : outcome.ok ? 'text-yellow-300' : 'text-red-300') : 'text-muted'
+                  }`}
+                >
+                  {currentId === s.id ? 'running…' : outcome ? outcome.message : 'pending'}
+                </span>
+              </div>
+              {outcome?.detail ? (
+                <p className="mt-0.5 break-words text-xs text-muted">{outcome.detail}</p>
+              ) : null}
             </li>
           );
         })}

@@ -78,6 +78,14 @@ against a background job, using the same `ingest_status` state machine.
 Requires `JINA_API_KEY`, `GROQ_API_KEY`, and `COHERE_API_KEY` in
 `.env.local`.
 
+Compound extraction sizes each Groq request to fit your tier's
+tokens-per-minute limit, which Groq counts as input plus `max_tokens`. Set
+`GROQ_TPM_LIMIT` (default 8000, the free tier). On the free tier a long paper
+takes roughly 10–12 minutes, and its daily token cap can stall a large
+re-extraction backfill until it resets; a paid tier with a higher
+`GROQ_TPM_LIMIT` makes both much faster. A batch Groq still rejects as too
+large is split in half and retried.
+
 ## Dashboard search & filtering
 
 `/dashboard` is backed by one RPC, `search_sources`

@@ -39,7 +39,10 @@ export async function tagNextMarkets(
   const client = new Groq({ maxRetries: 6, timeout: 120_000 });
   const response = await client.chat.completions.create({
     model: MODEL,
-    max_tokens: 4096,
+    // Input + max_tokens must fit Groq's per-minute token limit (8000 on the
+    // free tier); 40 short id→market pairs need far less than this.
+    max_tokens: 2500,
+    reasoning_effort: 'low',
     temperature: 0,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
