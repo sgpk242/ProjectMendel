@@ -205,3 +205,26 @@ async function pubchemRequest(path: string, formBody?: string): Promise<unknown 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+type DescriptionResponse = {
+  InformationList?: {
+    Information?: { CID?: number; Description?: string; DescriptionSourceName?: string }[];
+  };
+};
+
+/** The first description PubChem lists for a compound, or null. */
+export function parsePubChemDescription(body: unknown): string | null {
+  const info = (body as DescriptionResponse | null)?.InformationList?.Information ?? [];
+  const entry = info.find((i) => typeof i.Description === 'string' && i.Description.trim());
+  return entry?.Description?.trim() ?? null;
+}
+
+/**
+ * PubChem's description of a compound, with a link to its page. Null when
+ * PubChem has no description for it.
+ */
+export async function fetchPubChemDescription(cid: number): Promise<{ extract: string; url: string } | null> {
+  const body = await pubchemRequest(`/compound/cid/${cid}/description/JSON`);
+  const extract = parsePubChemDescription(body);
+  return extract ? { extract, url: `https://pubchem.ncbi.nlm.nih.gov/compound/${cid}` } : null;
+}

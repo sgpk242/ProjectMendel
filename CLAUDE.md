@@ -72,6 +72,15 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 | 2026-11-14 | Junction-table links require owning both sides, on insert and update (`source_product_ideas`, migration 017) | Re-extraction upserts links; without an update policy RLS rejected them |
 | 2026-11-15 | Groq request size derived from `GROQ_TPM_LIMIT` (input + `max_tokens` must fit); split and retry on 413 | Free tier rejects any single request over 8000 tokens; fixed-size batches lost compounds |
 | 2026-11-16 | Vitest unit tests + pgTAP database tests; status moved from CLAUDE.md to `PROGRESS.md` | Guard fixes against regressions; keep CLAUDE.md to durable rules |
+| 2026-11-16 | Feed web results must be individual, dated articles: listing pages (homepages, category / tag / archive / search pages) dropped by URL and title; undated results dropped | Category pages and homepages crowded out articles; an article has a title and a publish date |
+| 2026-11-16 | Feed items classified by commercial signal (funding, partnership, acquisition, product launch, offtake / supply, capacity, regulatory, setback, research, market analysis) from title + snippet; the signal follows the item onto the source when ingested (018, 019) | Deal articles worth reading often name no compound; tags travel with the article into the library |
+| 2026-11-16 | Products get a molecule class (small molecule, protein, enzyme, …); descriptions chosen by class: PubChem for small molecules, Wikipedia only on an exact-title match for a generic name, else the source's own description (020) | Wikipedia search on the brand "Sweelin" returned the composer Sweelinck; proteins and brands rarely have a PubChem or Wikipedia entry |
+| 2026-11-16 | Descriptions are refreshed per product with a Refresh button, not reset in bulk | Most cached descriptions are fine; fix the wrong ones where they're noticed |
+| 2026-11-16 | `product_aliases`: every name a compound goes by (names, brands, abbreviations, PubChem synonyms), unique per user; new mentions match on CID, then any alias (020) | A later source using only a brand name must land on the same product page |
+| 2026-11-16 | Product header = the generic name used by the most sources (counted from `source_product_ideas.names_used`), never a brand unless nothing else exists; can be pinned by hand | Show the most common term; counting per link keeps re-extraction from inflating counts |
+| 2026-11-16 | Production route (method, detail, evidence URL) stored per source–compound link; found from the article, else by a deep dig at ingest: up to 3 relevant article links, then one web search per compound, at most 5 pages, quote-verified | Different producers make the same compound different ways; the route is often on the company's page, not the article |
+| 2026-11-16 | GRAS notice scraping deferred to the roadmap | Logged as a next step |
+| 2026-11-16 | Major decisions are logged in CLAUDE.md as they're made, not only on request | Keep the log current |
 
 ## Working with me
 
@@ -103,4 +112,4 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 ### Progress and wrap-up
 
 - At each milestone (a feature, fix or migration landed, or a question opened or answered), update `PROGRESS.md`: done / next / open questions, plus its "Last updated" date.
-- When I say "Update CLAUDE.md with today's decisions", append rows to the decisions log only. Never delete old decisions, and never put session status in CLAUDE.md.
+- Append major decisions to the decisions log as they're made, in the same commit as the change. Never delete old decisions, and never put session status in CLAUDE.md.

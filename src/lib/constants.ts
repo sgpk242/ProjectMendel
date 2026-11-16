@@ -79,6 +79,106 @@ export const COMPOUND_MARKET_DEFINITIONS: Record<CompoundMarket, string> = {
   both: 'meaningful commercial use in both industrial and pharma markets (e.g. squalene: cosmetics and vaccine adjuvant)',
 };
 
+/** Biochemical class of a compound (`molecule_class` enum). */
+export const MOLECULE_CLASSES = [
+  'small_molecule',
+  'oligosaccharide',
+  'peptide',
+  'protein',
+  'enzyme',
+  'nucleic_acid',
+  'polysaccharide',
+  'lipid',
+  'polymer',
+  'biomass',
+  'mixture',
+  'other',
+] as const;
+export type MoleculeClass = (typeof MOLECULE_CLASSES)[number];
+
+export const MOLECULE_CLASS_LABELS: Record<MoleculeClass, string> = {
+  small_molecule: 'Small molecule',
+  oligosaccharide: 'Oligosaccharide',
+  peptide: 'Peptide',
+  protein: 'Protein',
+  enzyme: 'Enzyme',
+  nucleic_acid: 'Nucleic acid',
+  polysaccharide: 'Polysaccharide',
+  lipid: 'Lipid / oil',
+  polymer: 'Polymer',
+  biomass: 'Biomass',
+  mixture: 'Mixture / extract',
+  other: 'Other',
+};
+
+/** Definitions given to the model; also shown as tooltips. */
+export const MOLECULE_CLASS_DEFINITIONS: Record<MoleculeClass, string> = {
+  small_molecule:
+    'a single defined small organic compound (e.g. vanillin, rebaudioside M, squalene, 1,4-butanediol, an API)',
+  oligosaccharide: 'a short sugar chain of 2–10 units (e.g. 2\'-fucosyllactose, other human milk oligosaccharides)',
+  peptide: 'a short chain of amino acids, under ~50 (e.g. collagen peptides, GLP-1 analogues)',
+  protein:
+    'a non-enzymatic protein, including engineered or sweet proteins (e.g. brazzein, β-lactoglobulin, ovalbumin, heme protein)',
+  enzyme: 'a protein used for its catalytic activity (e.g. chymosin, amylase, lipase)',
+  nucleic_acid: 'DNA or RNA products (e.g. mRNA, plasmid DNA, oligonucleotides)',
+  polysaccharide: 'a long sugar polymer (e.g. hyaluronic acid, xanthan gum, bacterial cellulose)',
+  lipid: 'fats, oils and fatty acids (e.g. DHA, structured lipids, microbial oils)',
+  polymer: 'non-sugar biopolymers and bio-based plastics (e.g. PHA, PLA, spider silk fibres)',
+  biomass: 'whole-cell or biomass products (e.g. mycoprotein, single-cell protein, yeast extract)',
+  mixture: 'a blend, extract or formulation without one defined compound',
+  other: 'none of the above',
+};
+
+/** How a compound is made (`production_method` enum), recorded per source. */
+export const PRODUCTION_METHODS = [
+  'natural_extraction',
+  'precision_fermentation',
+  'biomass_fermentation',
+  'traditional_fermentation',
+  'enzymatic_conversion',
+  'chemical_synthesis',
+  'cell_culture',
+  'plant_molecular_farming',
+  'other',
+] as const;
+export type ProductionMethod = (typeof PRODUCTION_METHODS)[number];
+
+export const PRODUCTION_METHOD_LABELS: Record<ProductionMethod, string> = {
+  natural_extraction: 'Natural extraction',
+  precision_fermentation: 'Precision fermentation',
+  biomass_fermentation: 'Biomass fermentation',
+  traditional_fermentation: 'Traditional fermentation',
+  enzymatic_conversion: 'Enzymatic conversion',
+  chemical_synthesis: 'Chemical synthesis',
+  cell_culture: 'Cell culture',
+  plant_molecular_farming: 'Plant molecular farming',
+  other: 'Other',
+};
+
+export const PRODUCTION_METHOD_DEFINITIONS: Record<ProductionMethod, string> = {
+  natural_extraction: 'extracted or purified from a plant, animal or other natural source',
+  precision_fermentation:
+    'made by an engineered microbe (yeast, fungus, bacteria) that secretes or produces the specific molecule',
+  biomass_fermentation: 'the microbial biomass itself is the product (e.g. mycoprotein, single-cell protein)',
+  traditional_fermentation: 'conventional fermentation with unmodified organisms (e.g. lactic acid, citric acid)',
+  enzymatic_conversion: 'made from a feedstock by isolated enzymes (biocatalysis, bioconversion)',
+  chemical_synthesis: 'made by organic or industrial chemical synthesis',
+  cell_culture: 'grown in animal or plant cell culture',
+  plant_molecular_farming: 'expressed in engineered plants',
+  other: 'another route',
+};
+
+/** Kinds of name a product goes by (`alias_kind` enum). */
+export const ALIAS_KINDS = ['name', 'brand', 'abbreviation', 'pubchem'] as const;
+export type AliasKind = (typeof ALIAS_KINDS)[number];
+
+export const ALIAS_KIND_LABELS: Record<AliasKind, string> = {
+  name: 'Names',
+  brand: 'Brand names',
+  abbreviation: 'Abbreviations',
+  pubchem: 'PubChem synonyms',
+};
+
 // ---------------------------------------------------------------------------
 // Funding opportunities
 // ---------------------------------------------------------------------------

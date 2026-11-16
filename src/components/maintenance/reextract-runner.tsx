@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-type SourceItem = { id: string; title: string; state: 'legacy' | 'failed' | 'partial' };
+type SourceItem = { id: string; title: string; state: 'legacy' | 'failed' | 'partial' | 'no-routes' };
 
 /** `message` is the one-line result; `detail` is the full reason, shown wrapped below it. */
 type Outcome = { ok: boolean; message: string; detail?: string };
@@ -81,7 +81,7 @@ export function ReextractRunner({ sources }: { sources: SourceItem[] }) {
               <div className="flex items-baseline justify-between gap-4">
                 <span className="min-w-0 truncate">
                   {s.title}
-                  {s.state !== 'legacy' && !outcome ? (
+                  {s.state !== 'legacy' && s.state !== 'no-routes' && !outcome ? (
                     <span className="ml-2 text-xs text-yellow-300">
                       {s.state === 'failed' ? 'previously failed' : 'partially extracted'}
                     </span>

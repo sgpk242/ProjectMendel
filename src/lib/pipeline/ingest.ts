@@ -7,6 +7,7 @@ import { classify } from './classify';
 import { extractCompounds, summarizeFailures } from './compounds';
 import { embed, meanVector } from './embed';
 import { extract } from './extract';
+import { runProductionStage } from './production';
 import { checkSimilarity } from './similarity';
 import { store, storeCompounds } from './store';
 import type { IngestResult } from './types';
@@ -99,7 +100,7 @@ export async function runCompoundStage(
   try {
     const { data: source, error: sourceError } = await supabase
       .from('sources')
-      .select('full_text, title, source_type, ingest_status')
+      .select('url, full_text, title, source_type, ingest_status')
       .eq('id', sourceId)
       .single();
     if (sourceError || !source) {
@@ -131,7 +132,7 @@ export async function runCompoundStage(
     );
 
     const chunkIdByIndex = new Map((chunkRows ?? []).map((c) => [c.chunk_index, c.id]));
-    await storeCompounds(supabase, userId, sourceId, result.compounds, chunkIdByIndex);
+    await storeCompounds(supabase, userId, sourceId, result.compounds, chunkIdByIndex, source.url);
 
     // Partial failure: the batches that succeeded are stored, and the
     // failures are kept on the row as a warning rather than an error state.
@@ -140,6 +141,10 @@ export async function runCompoundStage(
         ? summarizeFailures(result.failedBatches, result.batchCount)
         : null;
     await setCompoundsStatus(supabase, sourceId, 'complete', warning);
+
+    // Deep dig for how compounds without a stated route are made. Tracked in
+    // production_status; its failures never fail the compound stage.
+    await runProductionStage(supabase, sourceId);
 
     return { ok: true, compoundCount: result.compounds.length, error: warning };
   } catch (err) {

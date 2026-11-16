@@ -12,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(19);
+select plan(24);
 
 -- ------------------------------------------------------------- fixtures ---
 -- Inserted as the table owner, so RLS doesn't apply here.
@@ -34,6 +34,9 @@ insert into product_ideas (id, user_id, name) values
 insert into source_product_ideas (source_id, product_idea_id, context, relevance_score) values
   ('a0000000-0000-0000-0000-000000000001', 'b0000000-0000-0000-0000-000000000001', 'old', 0.5),
   ('a0000000-0000-0000-0000-000000000002', 'b0000000-0000-0000-0000-000000000002', 'b ctx', 0.9);
+
+insert into product_aliases (user_id, product_idea_id, alias, alias_normalized, kind) values
+  ('11111111-1111-1111-1111-111111111111', 'b0000000-0000-0000-0000-000000000001', 'Reb M', 'reb m', 'abbreviation');
 
 insert into theses (id, user_id, claim) values
   ('c0000000-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Owner thesis'),
@@ -72,6 +75,21 @@ select throws_ok(
      where source_id = 'a0000000-0000-0000-0000-000000000001' $$,
   '42501', null, 'cannot re-point a link at another user''s compound'
 );
+select lives_ok(
+  $$ insert into product_aliases (user_id, product_idea_id, alias, alias_normalized, kind)
+     values ('11111111-1111-1111-1111-111111111111', 'b0000000-0000-0000-0000-000000000002', 'Sweelin', 'sweelin', 'brand') $$,
+  'owner can add an alias to their own compound (020)'
+);
+select throws_ok(
+  $$ insert into product_aliases (user_id, product_idea_id, alias, alias_normalized, kind)
+     values ('11111111-1111-1111-1111-111111111111', 'b0000000-0000-0000-0000-000000000001', 'SWEELIN', 'sweelin', 'brand') $$,
+  '23505', null, 'an alias belongs to only one of a user''s compounds'
+);
+select throws_ok(
+  $$ insert into product_aliases (user_id, product_idea_id, alias, alias_normalized, kind)
+     values ('11111111-1111-1111-1111-111111111111', 'b0000000-0000-0000-0000-0000000000ff', 'stolen', 'stolen', 'name') $$,
+  '42501', null, 'cannot add an alias to another user''s compound'
+);
 select throws_ok(
   $$ insert into thesis_sources (thesis_id, source_id, stance)
      values ('c0000000-0000-0000-0000-000000000001', 'a0000000-0000-0000-0000-000000000003', 'context') $$,
@@ -88,6 +106,7 @@ set local request.jwt.claims = '{"sub": "22222222-2222-2222-2222-222222222222", 
 
 select is((select count(*)::int from theses), 1, 'other user sees only their own thesis');
 select is((select count(*)::int from source_product_ideas), 0, 'other user sees none of the owner''s compound links');
+select is((select count(*)::int from product_aliases), 0, 'other user sees none of the owner''s aliases');
 
 update source_product_ideas set context = 'hijacked';
 
@@ -123,6 +142,10 @@ select is(
 select is(
   (select count(*)::int from product_ideas where id = 'b0000000-0000-0000-0000-000000000001'),
   0, 'merge removes the absorbed row'
+);
+select is(
+  (select product_idea_id from product_aliases where alias_normalized = 'reb m'),
+  'b0000000-0000-0000-0000-000000000002'::uuid, 'merge moves the absorbed row''s aliases to the survivor'
 );
 
 -- ------------------------------------------------- uniqueness (012) ---

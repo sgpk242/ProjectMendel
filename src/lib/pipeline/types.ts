@@ -1,4 +1,4 @@
-import type { CompoundMarket, SourceType } from '@/lib/constants';
+import type { CompoundMarket, MoleculeClass, ProductionMethod, SourceType } from '@/lib/constants';
 
 /**
  * Shared intermediate types for the ingest pipeline.
@@ -31,8 +31,14 @@ export type TopicSuggestion = {
 export type CompoundSuggestion = {
   /** Full common name of the compound (generic, not a brand). */
   name: string;
-  /** Abbreviations, brand/trade names, and other names the source uses. */
+  /** Abbreviations and other non-brand names the source uses. */
   aliases: string[];
+  /** Brand or trade names the source uses for it (e.g. "Sweelin"). */
+  brands: string[];
+  /** Biochemical class; null if the model didn't say. */
+  moleculeClass: MoleculeClass | null;
+  /** How this source says it's made; null when the text doesn't say. */
+  production: { method: ProductionMethod; detail: string | null } | null;
   description: string;
   context: string;
   relevanceScore: number;

@@ -60,7 +60,10 @@ export async function POST() {
       // Fetch results from the appropriate source
       const outcome: JinaSearchOutcome =
         query.source_type === 'openalex'
-          ? { results: await searchOpenAlex(query.query_text), skipped: { listing: 0, undated: 0 } }
+          ? {
+              results: (await searchOpenAlex(query.query_text)).map((r) => ({ ...r, content: null })),
+              skipped: { listing: 0, undated: 0 },
+            }
           : query.source_type === 'commercial'
             ? await searchCommercial(query.query_text)
             : await searchNews(query.query_text);

@@ -19,6 +19,8 @@ export type JinaSearchResult = {
   abstract: string | null;
   url: string;
   publishedDate: string | null;
+  /** Page text Jina returned with the result, if any. */
+  content: string | null;
 };
 
 /** Results plus how many were left out for not being an individual article. */
@@ -46,7 +48,8 @@ type JinaSearchResponse = {
  * subdomains) after the search, since Jina has no exclusion parameter.
  * Only individual articles are kept: listing pages (homepages, category,
  * tag, archive and search pages) and pages with no findable publish date
- * are dropped, and counted in `skipped`.
+ * are dropped, and counted in `skipped`. `requireDate: false` keeps undated
+ * pages (company technology and product pages have no publish date).
  *
  * Returns up to `limit` results. No native dedup ID — we use a SHA-256 of
  * the URL as the external ID.
@@ -57,7 +60,8 @@ export async function searchJina(
     limit = 10,
     sites = [],
     excludeSites = [],
-  }: { limit?: number; sites?: string[]; excludeSites?: string[] } = {},
+    requireDate = true,
+  }: { limit?: number; sites?: string[]; excludeSites?: string[]; requireDate?: boolean } = {},
 ): Promise<JinaSearchOutcome> {
   const apiKey = process.env.JINA_API_KEY;
   if (!apiKey) throw new Error('JINA_API_KEY is not set');
@@ -93,7 +97,7 @@ export async function searchJina(
       url: item.url,
       content: item.content,
     });
-    if (!publishedDate) {
+    if (!publishedDate && requireDate) {
       skipped.undated++;
       continue;
     }
@@ -104,6 +108,7 @@ export async function searchJina(
       abstract: item.description?.trim() || null,
       url: item.url,
       publishedDate,
+      content: item.content?.trim() || null,
     });
   }
 

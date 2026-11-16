@@ -5,7 +5,9 @@ import {
   buildBatches,
   endMatterCutoff,
   extractCompounds,
+  mergeCompounds,
   mergeMarkets,
+  parseProduction,
   summarizeFailures,
   tokenBudget,
   type ChunkSpan,
@@ -94,7 +96,7 @@ describe('tokenBudget', () => {
   it('keeps one free-tier request well under 8000 tokens', () => {
     const b = tokenBudget(8000);
     expect(b.concurrency).toBe(1);
-    expect(b.maxTokens + 900 + b.batchChars / 3).toBeLessThanOrEqual(8000 * 0.85 + 1);
+    expect(b.maxTokens + 1600 + b.batchChars / 3).toBeLessThanOrEqual(8000 * 0.85 + 1);
   });
   it('allows bigger batches and parallelism on higher tiers, within the cap', () => {
     const b = tokenBudget(250_000);
@@ -143,5 +145,52 @@ describe('mergeMarkets', () => {
     expect(mergeMarkets('pharma', 'pharma')).toBe('pharma');
     expect(mergeMarkets(null, 'industrial')).toBe('industrial');
     expect(mergeMarkets('industrial', 'pharma')).toBe('both');
+  });
+});
+
+describe('parseProduction', () => {
+  it('accepts a known method and trims the detail', () => {
+    expect(parseProduction({ method: 'precision_fermentation', detail: ' expressed in Pichia ' })).toEqual({
+      method: 'precision_fermentation',
+      detail: 'expressed in Pichia',
+    });
+    expect(parseProduction({ method: 'natural_extraction' })).toEqual({ method: 'natural_extraction', detail: null });
+  });
+
+  it('rejects unknown methods and non-objects', () => {
+    expect(parseProduction({ method: 'magic' })).toBeNull();
+    expect(parseProduction(null)).toBeNull();
+    expect(parseProduction('precision_fermentation')).toBeNull();
+  });
+});
+
+describe('mergeCompounds', () => {
+  const base = {
+    description: '',
+    context: '',
+    relevanceScore: 0.5,
+    chunkIndex: 0,
+    market: null,
+    aliases: [],
+    brands: [],
+    moleculeClass: null,
+    production: null,
+  };
+
+  it('unions brands and keeps the first class and production route', () => {
+    const merged = mergeCompounds([
+      { ...base, name: 'monellin', brands: ['Sweelin'] },
+      {
+        ...base,
+        name: 'Monellin',
+        brands: ['sweelin', 'Sweelin Pro'],
+        moleculeClass: 'protein',
+        production: { method: 'precision_fermentation', detail: null },
+      },
+    ]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0].brands).toEqual(['Sweelin', 'Sweelin Pro']);
+    expect(merged[0].moleculeClass).toBe('protein');
+    expect(merged[0].production?.method).toBe('precision_fermentation');
   });
 });

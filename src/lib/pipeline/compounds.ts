@@ -3,8 +3,14 @@ import Groq, { APIConnectionTimeoutError, APIError } from 'groq-sdk';
 import {
   COMPOUND_MARKETS,
   COMPOUND_MARKET_DEFINITIONS,
+  MOLECULE_CLASSES,
+  MOLECULE_CLASS_DEFINITIONS,
+  PRODUCTION_METHODS,
+  PRODUCTION_METHOD_DEFINITIONS,
   SOURCE_TYPE_LABELS,
   type CompoundMarket,
+  type MoleculeClass,
+  type ProductionMethod,
   type SourceType,
 } from '@/lib/constants';
 
@@ -25,8 +31,8 @@ const REQUEST_SHARE = 0.85;
 /** Fraction of a request's budget reserved for the response. */
 const OUTPUT_SHARE = 0.4;
 const MAX_OUTPUT_TOKENS = 6144;
-/** System prompt + document header, rounded up. */
-const PROMPT_TOKENS = 900;
+/** System prompt (with class and production-route definitions) + document header, rounded up. */
+const PROMPT_TOKENS = 1600;
 /** Conservative: dense scientific text can run close to 3 chars/token. */
 const CHARS_PER_TOKEN = 3;
 /**
@@ -111,18 +117,21 @@ class OutputCutOffError extends Error {
 const SYSTEM_PROMPT = `You extract biomanufacturing compounds and products from one excerpt of a longer document. The document may be a scientific paper, company press release, white paper, news article, report, or blog post. The excerpt is split into passages, each starting with a marker like [[chunk 12]].
 
 Return a JSON object: { "compounds": [ ... ] }. Each compound:
-{ "name": string, "aliases": string[], "description": string, "context": string, "relevanceScore": number 0.0-1.0, "chunkIndex": number, "market": "industrial" | "pharma" | "both" }
+{ "name": string, "aliases": string[], "brands": string[], "description": string, "context": string, "relevanceScore": number 0.0-1.0, "chunkIndex": number, "market": "industrial" | "pharma" | "both", "moleculeClass": string, "production": { "method": string, "detail": string } | null }
 
 Rules:
 - Only use the document's own substantive content: for papers, the introduction, methods, results and discussion; for press releases, news, white papers and blogs, the announcement or analysis itself.
 - Ignore end matter and page furniture: reference/bibliography lists and the titles of cited works, "About {Company}" boilerplate, forward-looking-statement disclaimers, contact details, navigation menus, related-article links, ads and subscription prompts.
 - Only include compounds or products that could realistically be produced through biological manufacturing (fermentation, precision fermentation, enzymatic synthesis, metabolic engineering, cell culture, etc.). List every one discussed; do not cap the count.
 - "name": the full common name of the generic compound, never an abbreviation (e.g. "rebaudioside M", not "Reb M"; "2'-fucosyllactose", not "2'-FL"). For a branded or trade-name product, use the underlying compound or ingredient as the name and put the brand in aliases. If no underlying compound is identifiable (e.g. a proprietary blend), use the product name.
-- "aliases": abbreviations, brand or trade names, and other names the text uses for it. Empty array if none.
+- "aliases": abbreviations and other generic names the text uses for it (not brands). Empty array if none.
+- "brands": brand or trade names the text uses for it (e.g. "Sweelin", "Reb M Pure"). Empty array if none.
 - "description": what it is and why it matters for biomanufacturing, in one sentence.
 - "context": a short quote or close paraphrase of where the text discusses it.
 - "chunkIndex": the number from the [[chunk N]] marker of the passage that context comes from.
 - "market": the compound's main commercial market in general, not just in this document. "industrial" = ${COMPOUND_MARKET_DEFINITIONS.industrial}; "pharma" = ${COMPOUND_MARKET_DEFINITIONS.pharma}; "both" = ${COMPOUND_MARKET_DEFINITIONS.both}.
+- "moleculeClass": one of ${MOLECULE_CLASSES.map((c) => `"${c}" (${MOLECULE_CLASS_DEFINITIONS[c]})`).join('; ')}.
+- "production": how THIS text says the compound is made, or null if the text doesn't say. "method" is one of ${PRODUCTION_METHODS.map((m) => `"${m}" (${PRODUCTION_METHOD_DEFINITIONS[m]})`).join('; ')}. "detail": the specifics in a few words (organism, host, feedstock or plant), e.g. "expressed in Komagataella phaffii". Don't guess from general knowledge.
 - If there are none, return { "compounds": [] }.
 
 Respond with ONLY valid JSON — no markdown fences, no commentary.`;
@@ -246,14 +255,17 @@ async function extractFromBatch(
           : fallbackIndex;
       return {
         name: typeof c.name === 'string' ? c.name.trim() : '',
-        aliases: Array.isArray(c.aliases)
-          ? c.aliases.filter((a): a is string => typeof a === 'string').map((a) => a.trim()).filter(Boolean)
-          : [],
+        aliases: stringList(c.aliases),
+        brands: stringList(c.brands),
         description: typeof c.description === 'string' ? c.description.trim() : '',
         context: typeof c.context === 'string' ? c.context.trim() : '',
         relevanceScore: clamp01(typeof c.relevanceScore === 'number' ? c.relevanceScore : 0.5),
         chunkIndex,
         market: COMPOUND_MARKETS.includes(c.market as CompoundMarket) ? (c.market as CompoundMarket) : null,
+        moleculeClass: MOLECULE_CLASSES.includes(c.moleculeClass as MoleculeClass)
+          ? (c.moleculeClass as MoleculeClass)
+          : null,
+        production: parseProduction(c.production),
       };
     })
     .filter((c) => c.name.length > 0);
@@ -392,22 +404,25 @@ export function summarizeFailures(reasons: string[], total: number): string {
 
 /**
  * Merge per-batch results by normalized name: keep the highest relevance
- * (with that hit's context and chunk), the longest description, and the
- * union of aliases.
+ * (with that hit's context and chunk), the longest description, the union
+ * of aliases and brands, and the first class and production route found.
  */
-function mergeCompounds(all: CompoundSuggestion[]): CompoundSuggestion[] {
+export function mergeCompounds(all: CompoundSuggestion[]): CompoundSuggestion[] {
   const byName = new Map<string, CompoundSuggestion>();
   for (const c of all) {
     const key = c.name.toLowerCase().replace(/\s+/g, ' ').trim();
     const prev = byName.get(key);
     if (!prev) {
-      byName.set(key, { ...c, aliases: dedupeStrings(c.aliases) });
+      byName.set(key, { ...c, aliases: dedupeStrings(c.aliases), brands: dedupeStrings(c.brands) });
       continue;
     }
     const best = c.relevanceScore > prev.relevanceScore ? c : prev;
     byName.set(key, {
       name: prev.name,
       aliases: dedupeStrings([...prev.aliases, ...c.aliases]),
+      brands: dedupeStrings([...prev.brands, ...c.brands]),
+      moleculeClass: prev.moleculeClass ?? c.moleculeClass,
+      production: prev.production ?? c.production,
       description: c.description.length > prev.description.length ? c.description : prev.description,
       context: best.context,
       relevanceScore: best.relevanceScore,
@@ -466,6 +481,23 @@ function parseJsonObject(text: string): unknown {
       throw new Error('Groq response was not valid JSON');
     }
   }
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((a): a is string => typeof a === 'string').map((a) => a.trim()).filter(Boolean)
+    : [];
+}
+
+/** A `{ method, detail }` object with a known method, or null. */
+export function parseProduction(value: unknown): { method: ProductionMethod; detail: string | null } | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const { method, detail } = value as { method?: unknown; detail?: unknown };
+  if (!PRODUCTION_METHODS.includes(method as ProductionMethod)) return null;
+  return {
+    method: method as ProductionMethod,
+    detail: typeof detail === 'string' && detail.trim() ? detail.trim().slice(0, 300) : null,
+  };
 }
 
 function clamp01(value: number): number {

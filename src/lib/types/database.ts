@@ -58,6 +58,8 @@ export type Database = {
           fts: unknown | null;
           signal_type: Database['public']['Enums']['feed_signal'] | null;
           signal_note: string | null;
+          production_status: Database['public']['Enums']['compound_status'] | null;
+          production_error: string | null;
         };
         Insert: {
           id?: string;
@@ -89,6 +91,8 @@ export type Database = {
           compounds_error?: string | null;
           signal_type?: Database['public']['Enums']['feed_signal'] | null;
           signal_note?: string | null;
+          production_status?: Database['public']['Enums']['compound_status'] | null;
+          production_error?: string | null;
         };
         Update: {
           id?: string;
@@ -120,6 +124,8 @@ export type Database = {
           compounds_error?: string | null;
           signal_type?: Database['public']['Enums']['feed_signal'] | null;
           signal_note?: string | null;
+          production_status?: Database['public']['Enums']['compound_status'] | null;
+          production_error?: string | null;
         };
         Relationships: [];
       };
@@ -331,12 +337,15 @@ export type Database = {
           description: string | null;
           interest_rating: number | null;
           notes: string | null;
-          wikipedia_extract: string | null;
-          wikipedia_url: string | null;
+          reference_extract: string | null;
+          reference_url: string | null;
           pubchem_cid: number | null;
           canonical_name: string | null;
           synonyms: string[];
           market: Database['public']['Enums']['compound_market'] | null;
+          reference_source: string | null;
+          molecule_class: Database['public']['Enums']['molecule_class'] | null;
+          product_name_pinned: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -347,12 +356,15 @@ export type Database = {
           description?: string | null;
           interest_rating?: number | null;
           notes?: string | null;
-          wikipedia_extract?: string | null;
-          wikipedia_url?: string | null;
+          reference_extract?: string | null;
+          reference_url?: string | null;
           pubchem_cid?: number | null;
           canonical_name?: string | null;
           synonyms?: string[];
           market?: Database['public']['Enums']['compound_market'] | null;
+          reference_source?: string | null;
+          molecule_class?: Database['public']['Enums']['molecule_class'] | null;
+          product_name_pinned?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -363,14 +375,51 @@ export type Database = {
           description?: string | null;
           interest_rating?: number | null;
           notes?: string | null;
-          wikipedia_extract?: string | null;
-          wikipedia_url?: string | null;
+          reference_extract?: string | null;
+          reference_url?: string | null;
           pubchem_cid?: number | null;
           canonical_name?: string | null;
           synonyms?: string[];
           market?: Database['public']['Enums']['compound_market'] | null;
+          reference_source?: string | null;
+          molecule_class?: Database['public']['Enums']['molecule_class'] | null;
+          product_name_pinned?: boolean;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      product_aliases: {
+        Row: {
+          id: string;
+          user_id: string;
+          product_idea_id: string;
+          alias: string;
+          alias_normalized: string;
+          kind: Database['public']['Enums']['alias_kind'];
+          first_source_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          product_idea_id: string;
+          alias: string;
+          alias_normalized: string;
+          kind: Database['public']['Enums']['alias_kind'];
+          first_source_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          product_idea_id?: string;
+          alias?: string;
+          alias_normalized?: string;
+          kind?: Database['public']['Enums']['alias_kind'];
+          first_source_id?: string | null;
+          created_at?: string;
         };
         Relationships: [];
       };
@@ -407,6 +456,10 @@ export type Database = {
           context: string | null;
           relevance_score: number | null;
           chunk_id: string | null;
+          names_used: string[];
+          production_method: Database['public']['Enums']['production_method'] | null;
+          production_detail: string | null;
+          production_evidence_url: string | null;
         };
         Insert: {
           source_id: string;
@@ -414,6 +467,10 @@ export type Database = {
           context?: string | null;
           relevance_score?: number | null;
           chunk_id?: string | null;
+          names_used?: string[];
+          production_method?: Database['public']['Enums']['production_method'] | null;
+          production_detail?: string | null;
+          production_evidence_url?: string | null;
         };
         Update: {
           source_id?: string;
@@ -421,6 +478,10 @@ export type Database = {
           context?: string | null;
           relevance_score?: number | null;
           chunk_id?: string | null;
+          names_used?: string[];
+          production_method?: Database['public']['Enums']['production_method'] | null;
+          production_detail?: string | null;
+          production_evidence_url?: string | null;
         };
         Relationships: [];
       };
@@ -699,6 +760,30 @@ export type Database = {
       thesis_status: 'open' | 'confirmed' | 'refuted' | 'unresolved';
       thesis_stance: 'supports' | 'contradicts' | 'context';
       compound_market: 'industrial' | 'pharma' | 'both';
+      molecule_class:
+        | 'small_molecule'
+        | 'oligosaccharide'
+        | 'peptide'
+        | 'protein'
+        | 'enzyme'
+        | 'nucleic_acid'
+        | 'polysaccharide'
+        | 'lipid'
+        | 'polymer'
+        | 'biomass'
+        | 'mixture'
+        | 'other';
+      production_method:
+        | 'natural_extraction'
+        | 'precision_fermentation'
+        | 'biomass_fermentation'
+        | 'traditional_fermentation'
+        | 'enzymatic_conversion'
+        | 'chemical_synthesis'
+        | 'cell_culture'
+        | 'plant_molecular_farming'
+        | 'other';
+      alias_kind: 'name' | 'brand' | 'abbreviation' | 'pubchem';
     };
 
     CompositeTypes: Record<never, never>;
@@ -724,6 +809,7 @@ export type Collection = Tables<'collections'>;
 export type SourceSimilarity = Tables<'source_similarities'>;
 export type FundingOpportunity = Tables<'funding_opportunities'>;
 export type ProductIdea = Tables<'product_ideas'>;
+export type ProductAlias = Tables<'product_aliases'>;
 export type FeedQuery = Tables<'feed_queries'>;
 export type FeedItem = Tables<'feed_items'>;
 export type Thesis = Tables<'theses'>;
