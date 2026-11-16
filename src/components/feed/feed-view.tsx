@@ -6,6 +6,10 @@ import { useState } from 'react';
 import {
   FEED_ITEM_STATUSES,
   FEED_ITEM_STATUS_LABELS,
+  FEED_SIGNALS,
+  FEED_SIGNAL_DEFINITIONS,
+  FEED_SIGNAL_LABELS,
+  type FeedSignal,
   FEED_SOURCE_TYPES,
   FEED_SOURCE_TYPE_LABELS,
   type FeedItemStatus,
@@ -38,6 +42,30 @@ const QUERY_GUIDES: Record<FeedSourceType, { structure: string; example: string;
   },
 };
 
+type RefreshResponse = {
+  added?: number;
+  skipped?: { listing: number; undated: number };
+  classified?: number;
+  errors?: string[];
+  error?: string;
+  message?: string;
+};
+
+function summarizeRefresh(ok: boolean, body: RefreshResponse): string {
+  if (!ok) return body.error ?? 'Refresh failed';
+  if (body.message) return body.message;
+  const parts = [`${body.added ?? 0} new`];
+  const skipped = (body.skipped?.listing ?? 0) + (body.skipped?.undated ?? 0);
+  if (skipped > 0) {
+    parts.push(
+      `skipped ${body.skipped!.listing} listing ${body.skipped!.listing === 1 ? 'page' : 'pages'} and ${body.skipped!.undated} undated`,
+    );
+  }
+  if (body.classified) parts.push(`${body.classified} classified`);
+  const summary = parts.join(' · ');
+  return body.errors?.length ? `${summary}. Errors: ${body.errors.join('; ')}` : summary;
+}
+
 type Props = {
   queries: FeedQuery[];
   items: FeedItem[];
@@ -57,13 +85,28 @@ export function FeedView({ queries, items, newCount }: Props) {
   const [ingestingId, setIngestingId] = useState<string | null>(null);
   const [ingestErrors, setIngestErrors] = useState<Record<string, string>>({});
   const [showQueries, setShowQueries] = useState(false);
+  const [signalFilter, setSignalFilter] = useState<FeedSignal | 'all'>('all');
+  const [refreshSummary, setRefreshSummary] = useState<string | null>(null);
 
-  const filteredItems =
+  const statusItems =
     activeTab === 'all' ? items : items.filter((i) => i.status === activeTab);
+  const filteredItems =
+    signalFilter === 'all' ? statusItems : statusItems.filter((i) => i.signal_type === signalFilter);
+  const signalCounts = new Map<FeedSignal, number>();
+  for (const item of statusItems) {
+    if (item.signal_type) signalCounts.set(item.signal_type, (signalCounts.get(item.signal_type) ?? 0) + 1);
+  }
 
   async function handleRefresh() {
     setRefreshing(true);
-    await fetch('/api/feed/refresh', { method: 'POST' });
+    setRefreshSummary(null);
+    try {
+      const res = await fetch('/api/feed/refresh', { method: 'POST' });
+      const body = (await res.json().catch(() => ({}))) as RefreshResponse;
+      setRefreshSummary(summarizeRefresh(res.ok, body));
+    } catch {
+      setRefreshSummary('Refresh failed: network error');
+    }
     setRefreshing(false);
     router.refresh();
   }
@@ -168,6 +211,7 @@ export function FeedView({ queries, items, newCount }: Props) {
           {newCount} new {newCount === 1 ? 'item' : 'items'}
         </span>
       </div>
+      {refreshSummary && <p className="mt-2 text-xs text-muted">Last refresh: {refreshSummary}</p>}
 
       {/* Queries section */}
       {showQueries && (
@@ -325,6 +369,28 @@ export function FeedView({ queries, items, newCount }: Props) {
         ))}
       </div>
 
+      {/* Signal filter */}
+      {signalCounts.size > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {(['all', ...FEED_SIGNALS] as const)
+            .filter((s) => s === 'all' || signalCounts.has(s))
+            .map((s) => (
+              <button
+                key={s}
+                onClick={() => setSignalFilter(s)}
+                title={s === 'all' ? undefined : FEED_SIGNAL_DEFINITIONS[s]}
+                className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                  signalFilter === s
+                    ? 'border-accent bg-accent/20 text-accent'
+                    : 'border-border text-muted hover:text-foreground'
+                }`}
+              >
+                {s === 'all' ? 'All signals' : `${FEED_SIGNAL_LABELS[s]} (${signalCounts.get(s)})`}
+              </button>
+            ))}
+        </div>
+      )}
+
       {/* Feed items */}
       <div className="mt-4 space-y-3">
         {filteredItems.length === 0 ? (
@@ -364,7 +430,18 @@ export function FeedView({ queries, items, newCount }: Props) {
                         ? 'Academic'
                         : 'Web'}
                     </span>
+                    {item.signal_type && (
+                      <span
+                        title={FEED_SIGNAL_DEFINITIONS[item.signal_type]}
+                        className="rounded bg-accent/15 px-1.5 py-0.5 font-medium text-accent"
+                      >
+                        {FEED_SIGNAL_LABELS[item.signal_type]}
+                      </span>
+                    )}
                   </div>
+                  {item.signal_note && (
+                    <p className="mt-1 text-sm text-foreground/90">{item.signal_note}</p>
+                  )}
                   {item.abstract && (
                     <p className="mt-2 line-clamp-2 text-sm text-muted">{item.abstract}</p>
                   )}

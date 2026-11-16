@@ -1,3 +1,4 @@
+import { isListingPage } from '@/lib/feed/listing-page';
 import { createClient } from '@/lib/supabase/server';
 import { PageShell } from '@/components/ui/page-shell';
 import { UrlInput } from '@/components/ingest/url-input';
@@ -253,22 +254,19 @@ async function loadRatedProductIdeas(supabase: Supabase): Promise<RatedProductId
   }));
 }
 
-/** Count of new feed items + the 5 most recent. */
+/**
+ * Count of new feed items + the 5 most recent. Listing pages stored before
+ * the feed filtered them out are hidden here too.
+ */
 async function loadNewFeedItems(
   supabase: Supabase,
 ): Promise<{ newCount: number; items: FeedTileItem[] }> {
-  const [{ count }, { data }] = await Promise.all([
-    supabase
-      .from('feed_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'new'),
-    supabase
-      .from('feed_items')
-      .select('id, title, authors, published_date, url')
-      .eq('status', 'new')
-      .order('fetched_at', { ascending: false })
-      .limit(5),
-  ]);
+  const { data } = await supabase
+    .from('feed_items')
+    .select('id, title, authors, published_date, url, signal_type, signal_note')
+    .eq('status', 'new')
+    .order('fetched_at', { ascending: false });
 
-  return { newCount: count ?? 0, items: data ?? [] };
+  const articles = (data ?? []).filter((i) => !isListingPage(i.url, i.title));
+  return { newCount: articles.length, items: articles.slice(0, 5) };
 }

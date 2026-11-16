@@ -105,6 +105,51 @@ export const FEED_SOURCE_TYPE_LABELS: Record<FeedSourceType, string> = {
   commercial: 'Commercial (wires & trade press)',
 };
 
+/** What a feed item is most likely worth reading for (`feed_signal` enum). */
+export const FEED_SIGNALS = [
+  'funding',
+  'partnership',
+  'acquisition',
+  'product_launch',
+  'offtake_supply',
+  'capacity',
+  'regulatory',
+  'setback',
+  'research',
+  'market_analysis',
+  'other',
+] as const;
+export type FeedSignal = (typeof FEED_SIGNALS)[number];
+
+export const FEED_SIGNAL_LABELS: Record<FeedSignal, string> = {
+  funding: 'Funding',
+  partnership: 'Partnership',
+  acquisition: 'Acquisition',
+  product_launch: 'Product launch',
+  offtake_supply: 'Offtake / supply',
+  capacity: 'Capacity / scale-up',
+  regulatory: 'Regulatory',
+  setback: 'Setback',
+  research: 'Research',
+  market_analysis: 'Market analysis',
+  other: 'Other',
+};
+
+/** Definitions given to the classifier; also shown as badge tooltips. */
+export const FEED_SIGNAL_DEFINITIONS: Record<FeedSignal, string> = {
+  funding: 'a funding round, grant, IPO or other raise',
+  partnership: 'a partnership, collaboration, joint venture, licensing or distribution deal',
+  acquisition: 'an acquisition, merger or asset purchase',
+  product_launch: 'a product or ingredient launch, or commercial availability',
+  offtake_supply: 'an offtake, supply or manufacturing contract with a named customer',
+  capacity: 'a new plant, scale-up, capacity expansion or manufacturing milestone',
+  regulatory: 'a regulatory approval, filing or policy decision (GRAS, FDA, EFSA, novel food…)',
+  setback: 'a shutdown, layoffs, bankruptcy, pivot, recall or failed deal',
+  research: 'a technical or R&D result',
+  market_analysis: 'market, pricing or industry-trend analysis or commentary',
+  other: 'none of the above',
+};
+
 export const FEED_ITEM_STATUSES = ['new', 'reviewed', 'dismissed', 'ingested'] as const;
 export type FeedItemStatus = (typeof FEED_ITEM_STATUSES)[number];
 

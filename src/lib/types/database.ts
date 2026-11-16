@@ -530,6 +530,8 @@ export type Database = {
           status: Database['public']['Enums']['feed_item_status'];
           ingested_source_id: string | null;
           created_at: string;
+          signal_type: Database['public']['Enums']['feed_signal'] | null;
+          signal_note: string | null;
         };
         Insert: {
           id?: string;
@@ -545,6 +547,8 @@ export type Database = {
           status?: Database['public']['Enums']['feed_item_status'];
           ingested_source_id?: string | null;
           created_at?: string;
+          signal_type?: Database['public']['Enums']['feed_signal'] | null;
+          signal_note?: string | null;
         };
         Update: {
           id?: string;
@@ -560,6 +564,8 @@ export type Database = {
           status?: Database['public']['Enums']['feed_item_status'];
           ingested_source_id?: string | null;
           created_at?: string;
+          signal_type?: Database['public']['Enums']['feed_signal'] | null;
+          signal_note?: string | null;
         };
         Relationships: [];
       };
@@ -671,6 +677,18 @@ export type Database = {
       similarity_type: 'duplicate' | 'related' | 'contradicts';
       feed_source_type: 'openalex' | 'web' | 'commercial';
       feed_item_status: 'new' | 'reviewed' | 'dismissed' | 'ingested';
+      feed_signal:
+        | 'funding'
+        | 'partnership'
+        | 'acquisition'
+        | 'product_launch'
+        | 'offtake_supply'
+        | 'capacity'
+        | 'regulatory'
+        | 'setback'
+        | 'research'
+        | 'market_analysis'
+        | 'other';
       compound_status: 'pending' | 'running' | 'complete' | 'failed';
       thesis_status: 'open' | 'confirmed' | 'refuted' | 'unresolved';
       thesis_stance: 'supports' | 'contradicts' | 'context';

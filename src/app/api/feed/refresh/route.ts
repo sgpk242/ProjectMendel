@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
 import { searchOpenAlex } from '@/lib/feed/openalex';
-import { searchCommercial, searchNews } from '@/lib/feed/jina-search';
+import { searchCommercial, searchNews, type JinaSearchOutcome } from '@/lib/feed/jina-search';
+import { classifyPendingFeedItems } from '@/lib/feed/signal';
+
+// Signal classification makes a few Groq calls after the searches.
+export const maxDuration = 300;
 
 /**
  * POST /api/feed/refresh — run all enabled feed queries and fetch new items.
@@ -10,10 +14,12 @@ import { searchCommercial, searchNews } from '@/lib/feed/jina-search';
  * For each enabled query:
  *  1. Call the appropriate fetcher (OpenAlex, Jina Search, or Jina Search
  *     restricted to commercial sites)
- *  2. Dedup-insert results into feed_items
+ *  2. Dedup-insert results into feed_items (web searches keep only dated,
+ *     individual articles)
  *  3. Update feed_queries.last_run_at
+ * Then classifies unclassified feed items by commercial signal.
  *
- * Returns the total number of newly added items.
+ * Returns how many items were added, skipped and classified.
  */
 export async function POST() {
   const supabase = await createClient();
@@ -46,17 +52,21 @@ export async function POST() {
   }
 
   let totalAdded = 0;
+  const skipped = { listing: 0, undated: 0 };
   const errors: string[] = [];
 
   for (const query of queries) {
     try {
       // Fetch results from the appropriate source
-      const results =
+      const outcome: JinaSearchOutcome =
         query.source_type === 'openalex'
-          ? await searchOpenAlex(query.query_text)
+          ? { results: await searchOpenAlex(query.query_text), skipped: { listing: 0, undated: 0 } }
           : query.source_type === 'commercial'
             ? await searchCommercial(query.query_text)
             : await searchNews(query.query_text);
+      const { results } = outcome;
+      skipped.listing += outcome.skipped.listing;
+      skipped.undated += outcome.skipped.undated;
 
       if (results.length === 0) {
         // Update last_run_at even with no results
@@ -101,10 +111,20 @@ export async function POST() {
     }
   }
 
+  let classified = 0;
+  try {
+    classified = await classifyPendingFeedItems(supabase);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    errors.push(`Signal classification: ${msg}`);
+  }
+
   return NextResponse.json(
     {
       added: totalAdded,
       queries: queries.length,
+      skipped,
+      classified,
       ...(errors.length > 0 ? { errors } : {}),
     },
     { status: 200 },
