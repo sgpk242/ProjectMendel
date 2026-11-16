@@ -80,7 +80,7 @@ export function UrlInput() {
   return (
     <div className="rounded-lg border border-border bg-surface">
       <div className="border-b border-border px-4 py-3">
-        <h2 className="text-sm font-semibold">New Source Upload</h2>
+        <h2 className="text-sm font-semibold">Manual Source Upload</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 p-4">

@@ -12,6 +12,7 @@ import {
   type FeedSourceType,
 } from '@/lib/constants';
 import type { FeedItem, FeedQuery } from '@/lib/types/database';
+import { Spinner } from '@/components/ui/spinner';
 
 /**
  * How to phrase a query for each search type. Each search works differently,
@@ -53,6 +54,8 @@ export function FeedView({ queries, items, newCount }: Props) {
   const [newQueryText, setNewQueryText] = useState('');
   const [newQueryType, setNewQueryType] = useState<FeedSourceType>('commercial');
   const [actionId, setActionId] = useState<string | null>(null);
+  const [ingestingId, setIngestingId] = useState<string | null>(null);
+  const [ingestErrors, setIngestErrors] = useState<Record<string, string>>({});
   const [showQueries, setShowQueries] = useState(false);
 
   const filteredItems =
@@ -128,7 +131,18 @@ export function FeedView({ queries, items, newCount }: Props) {
 
   async function handleIngest(id: string) {
     setActionId(id);
-    await fetch(`/api/feed/${id}/ingest`, { method: 'POST' });
+    setIngestingId(id);
+    setIngestErrors((prev) => ({ ...prev, [id]: '' }));
+    try {
+      const res = await fetch(`/api/feed/${id}/ingest`, { method: 'POST' });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        setIngestErrors((prev) => ({ ...prev, [id]: body.error ?? `Ingest failed (${res.status})` }));
+      }
+    } catch {
+      setIngestErrors((prev) => ({ ...prev, [id]: 'Ingest failed: network error' }));
+    }
+    setIngestingId(null);
     setActionId(null);
     router.refresh();
   }
@@ -381,11 +395,20 @@ export function FeedView({ queries, items, newCount }: Props) {
                   <button
                     onClick={() => handleIngest(item.id)}
                     disabled={actionId === item.id}
-                    className="rounded bg-accent/10 px-2 py-0.5 text-xs text-accent hover:bg-accent/20 disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded bg-accent/10 px-2 py-0.5 text-xs text-accent hover:bg-accent/20 disabled:opacity-50"
                   >
-                    Ingest →
+                    {ingestingId === item.id ? (
+                      <>
+                        <Spinner /> Ingesting…
+                      </>
+                    ) : (
+                      'Ingest →'
+                    )}
                   </button>
                 </div>
+              )}
+              {ingestErrors[item.id] && (
+                <p className="mt-1 text-xs text-red-400">{ingestErrors[item.id]}</p>
               )}
             </div>
           ))

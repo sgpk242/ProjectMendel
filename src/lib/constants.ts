@@ -93,7 +93,7 @@ export const FUNDING_STATUS_LABELS: Record<FundingStatus, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Papers feed
+// Sources feed
 // ---------------------------------------------------------------------------
 
 export const FEED_SOURCE_TYPES = ['openalex', 'web', 'commercial'] as const;

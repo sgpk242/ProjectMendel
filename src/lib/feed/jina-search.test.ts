@@ -37,6 +37,19 @@ describe('searchCommercial', () => {
   });
 });
 
+describe('searchJina listing pages', () => {
+  it('drops category pages from commercial results', async () => {
+    mockJina([
+      'https://www.synbiobeta.com/categories/food-agriculture',
+      'https://www.synbiobeta.com/read/sweet-proteins-are-coming',
+    ]);
+    const results = await searchCommercial('biomanufactured sweetness proteins');
+    expect(results.map((r) => r.url)).toEqual([
+      'https://www.synbiobeta.com/read/sweet-proteins-are-coming',
+    ]);
+  });
+});
+
 describe('searchNews', () => {
   it('drops results from commercial sites and their subdomains', async () => {
     mockJina([

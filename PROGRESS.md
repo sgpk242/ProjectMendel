@@ -15,7 +15,8 @@ Updated by Claude at each milestone. Durable rules and the decisions log live in
 - **Industrial / Pharma toggle** on the Product Idea Radar (016), with AI tagging and a picker on product pages.
 - **Maintenance** in the nav.
 - **Fixes:** re-extract RLS failure (017); Groq requests sized to the tokens-per-minute limit, with split-and-retry on 413.
-- **Test suite:** 34 Vitest unit tests (`npm test`) and 19 pgTAP database tests (`npm run test:db`).
+- **Test suite:** 59 Vitest unit tests (`npm test`) and 19 pgTAP database tests (`npm run test:db`).
+- **Feed cleanup:** web searches drop listing pages (category, tag, topic, author, archive, search and section pages, homepages), and stored ones are hidden; spinner and error message on "Ingest"; "Papers" labels renamed to "Sources"; dashboard tile renamed "Manual Source Upload".
 
 ## Next
 
@@ -30,6 +31,7 @@ Updated by Claude at each milestone. Durable rules and the decisions log live in
 - **Live data:** finish `/maintenance` in order (look up names → apply merges → tag industrial / pharma → re-extract, including partially extracted sources) and report any errors. PubChem lookups and Groq tagging haven't been verified against the live services yet.
 - **Groq tier:** the free tier makes a long paper take about 10–12 minutes and has a daily token cap that can stall a big backfill. Stay on it, or upgrade and set `GROQ_TPM_LIMIT`?
 - **Commercial feed:** does the first refresh return results? Jina's handling of `OR` in the deal terms is unverified; if nothing comes back, blank `COMMERCIAL_QUERY_TERMS`.
+- **Listing-page filter:** it judges by URL patterns and titles. If a category page still gets through, send the URL so its pattern can be added. A WordPress category nested two levels deep (`/category/a/b/`) is let through on purpose: GEN files real articles at `/topics/<area>/<slug>/`.
 - **Hosting:** which Vercel plan? Several routes set `maxDuration` 300, and free-tier compound extraction runs well past that.
 - **Database tests on your PC:** `npm run test:db` needs Docker Desktop. Install it, or rely on the tests being run in Claude's sessions?
 - **Cloud environment:** add `api.openalex.org` and `en.wikipedia.org` to the ProjectMendel environment (PubChem is already allowed) and start sessions on it.

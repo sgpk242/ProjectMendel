@@ -96,7 +96,7 @@ export default async function ProductPage({ params }: PageProps<'/product/[id]'>
 
       <div className="mt-6">
         <h2 className="text-sm font-semibold tracking-tight text-muted">
-          Papers referencing this compound
+          Sources referencing this compound
         </h2>
         <div className="mt-2">
           {referencingSources.length > 0 ? (

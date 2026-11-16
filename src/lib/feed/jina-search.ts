@@ -9,6 +9,7 @@
 import { createHash } from 'node:crypto';
 
 import { COMMERCIAL_QUERY_TERMS, COMMERCIAL_SITES } from './commercial-sites';
+import { isListingPage } from './listing-page';
 
 export type JinaSearchResult = {
   externalId: string;
@@ -33,6 +34,7 @@ type JinaSearchResponse = {
  * `sites` restricts results to those domains (Jina's repeated `site=`
  * parameter); `excludeSites` drops results from those domains (and their
  * subdomains) after the search, since Jina has no exclusion parameter.
+ * Listing pages (category, tag, archive, search pages) are always dropped.
  *
  * Returns up to `limit` results. No native dedup ID — we use a SHA-256 of
  * the URL as the external ID.
@@ -67,6 +69,7 @@ export async function searchJina(
   return (body.data ?? [])
     .filter((item) => item.title && item.url)
     .filter((item) => !isOnSite(item.url!, excludeSites))
+    .filter((item) => !isListingPage(item.url!, item.title))
     .slice(0, limit)
     .map((item) => ({
       externalId: createHash('sha256').update(item.url!).digest('hex'),
