@@ -8,6 +8,7 @@ import { MetadataPanel } from '@/components/source/metadata-panel';
 import { NoteEditor } from '@/components/source/note-editor';
 import { RatingEditor } from '@/components/source/rating-editor';
 import { SimilarSources, type SimilarSourceItem } from '@/components/source/similar-sources';
+import { SignalEditor } from '@/components/source/signal-editor';
 import { SourceTypeEditor } from '@/components/source/source-type-editor';
 import { StatusEditor } from '@/components/source/status-editor';
 import { SummarySection } from '@/components/source/summary-section';
@@ -118,6 +119,7 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
       <div className="mt-6 flex flex-wrap items-center gap-6">
         <StatusEditor sourceId={source.id} status={source.status} />
         <SourceTypeEditor sourceId={source.id} sourceType={source.source_type} />
+        <SignalEditor sourceId={source.id} signalType={source.signal_type} />
         <RatingEditor sourceId={source.id} rating={source.interest_rating} />
       </div>
 
@@ -127,6 +129,13 @@ export default async function SourcePage({ params }: PageProps<'/source/[id]'>) 
           <NoteEditor sourceId={source.id} note={source.user_note} />
         </div>
       </div>
+
+      {source.signal_note ? (
+        <p className="mt-3 text-sm text-foreground/90">
+          <span className="text-xs text-muted">What happened: </span>
+          {source.signal_note}
+        </p>
+      ) : null}
 
       <div className="mt-6">
         <SummarySection summary={source.summary} />
@@ -211,7 +220,7 @@ async function loadSource(supabase: Supabase, id: string) {
   const { data } = await supabase
     .from('sources')
     .select(
-      'id, title, url, author, publication, published_date, captured_at, summary, source_type, status, ingest_status, ingest_error, interest_rating, word_count, reading_time_minutes, user_note, classification_truncated, compounds_status, compounds_error',
+      'id, title, url, author, publication, published_date, captured_at, summary, source_type, signal_type, signal_note, status, ingest_status, ingest_error, interest_rating, word_count, reading_time_minutes, user_note, classification_truncated, compounds_status, compounds_error',
     )
     .eq('id', id)
     .maybeSingle();

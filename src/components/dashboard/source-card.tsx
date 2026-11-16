@@ -3,7 +3,12 @@ import Link from 'next/link';
 import { CollectionPicker } from '@/components/dashboard/collection-picker';
 import { QuickStatus } from '@/components/dashboard/quick-status';
 import { DeleteSourceButton } from '@/components/source/delete-button';
-import { SOURCE_TYPE_LABELS, type IngestStatus } from '@/lib/constants';
+import {
+  FEED_SIGNAL_DEFINITIONS,
+  FEED_SIGNAL_LABELS,
+  SOURCE_TYPE_LABELS,
+  type IngestStatus,
+} from '@/lib/constants';
 
 import type { SourceListItem } from './source-list';
 
@@ -93,6 +98,14 @@ export function SourceCard({ source }: { source: SourceListItem }) {
         <span className="rounded-full border border-border px-2 py-0.5">
           {SOURCE_TYPE_LABELS[source.sourceType]}
         </span>
+        {source.signalType ? (
+          <span
+            title={FEED_SIGNAL_DEFINITIONS[source.signalType]}
+            className="rounded-full bg-accent/15 px-2 py-0.5 font-medium text-accent"
+          >
+            {FEED_SIGNAL_LABELS[source.signalType]}
+          </span>
+        ) : null}
         {source.publication ? <span>{source.publication}</span> : null}
         <span>{relativeDate(source.capturedAt)}</span>
         {source.readingTimeMinutes ? <span>{source.readingTimeMinutes} min read</span> : null}

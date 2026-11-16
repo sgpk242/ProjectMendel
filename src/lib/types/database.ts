@@ -56,6 +56,8 @@ export type Database = {
           compounds_error: string | null;
           /** Generated column — readable, never writable. */
           fts: unknown | null;
+          signal_type: Database['public']['Enums']['feed_signal'] | null;
+          signal_note: string | null;
         };
         Insert: {
           id?: string;
@@ -85,6 +87,8 @@ export type Database = {
           classification_truncated?: boolean;
           compounds_status?: Database['public']['Enums']['compound_status'] | null;
           compounds_error?: string | null;
+          signal_type?: Database['public']['Enums']['feed_signal'] | null;
+          signal_note?: string | null;
         };
         Update: {
           id?: string;
@@ -114,6 +118,8 @@ export type Database = {
           classification_truncated?: boolean;
           compounds_status?: Database['public']['Enums']['compound_status'] | null;
           compounds_error?: string | null;
+          signal_type?: Database['public']['Enums']['feed_signal'] | null;
+          signal_note?: string | null;
         };
         Relationships: [];
       };

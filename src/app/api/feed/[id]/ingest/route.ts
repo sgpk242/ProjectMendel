@@ -1,6 +1,7 @@
 import { after, NextResponse } from 'next/server';
 
 import { createClient } from '@/lib/supabase/server';
+import { classifySignals } from '@/lib/feed/signal';
 import { runCompoundStage, runIngestPipeline } from '@/lib/pipeline/ingest';
 
 // Covers the compound stage scheduled with `after()`, which runs within this
@@ -10,7 +11,8 @@ export const maxDuration = 300;
 /**
  * POST /api/feed/[id]/ingest — ingest a feed item into the main corpus.
  *
- * 1. Creates a pending source row for the feed item's URL
+ * 1. Creates a pending source row for the feed item's URL, carrying over the
+ *    item's commercial signal (classified now if the refresh hadn't yet)
  * 2. Runs the full ingest pipeline
  * 3. Updates the feed item's status to 'ingested' and links the new source
  * 4. Schedules full-text compound extraction to run after the response
@@ -55,6 +57,27 @@ export async function POST(
     );
   }
 
+  // The signal tag follows the article into the library. Classify now if
+  // the refresh didn't get to this item; a Groq failure leaves it untagged
+  // rather than blocking the ingest.
+  let signalType = feedItem.signal_type;
+  let signalNote = feedItem.signal_note;
+  if (!signalType) {
+    try {
+      const result = (await classifySignals([feedItem])).get(feedItem.id);
+      if (result) {
+        signalType = result.signal;
+        signalNote = result.note;
+        await supabase
+          .from('feed_items')
+          .update({ signal_type: signalType, signal_note: signalNote })
+          .eq('id', id);
+      }
+    } catch {
+      // Left untagged; it can be set on the source page.
+    }
+  }
+
   // Create a pending source row
   const url = feedItem.url;
   const canonical = url.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
@@ -66,6 +89,8 @@ export async function POST(
       url,
       url_canonical: canonical,
       ingest_status: 'pending',
+      signal_type: signalType,
+      signal_note: signalNote,
     })
     .select('id')
     .single();

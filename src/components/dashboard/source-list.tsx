@@ -1,11 +1,12 @@
 import { SourceCard } from '@/components/dashboard/source-card';
-import type { IngestStatus, SourceStatus, SourceType } from '@/lib/constants';
+import type { FeedSignal, IngestStatus, SourceStatus, SourceType } from '@/lib/constants';
 
 export type SourceListItem = {
   id: string;
   title: string | null;
   summary: string | null;
   sourceType: SourceType;
+  signalType: FeedSignal | null;
   ingestStatus: IngestStatus;
   status: SourceStatus;
   capturedAt: string;

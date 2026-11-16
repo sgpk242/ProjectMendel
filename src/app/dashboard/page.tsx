@@ -1,3 +1,4 @@
+import type { FeedSignal } from '@/lib/constants';
 import { isListingPage } from '@/lib/feed/listing-page';
 import { createClient } from '@/lib/supabase/server';
 import { PageShell } from '@/components/ui/page-shell';
@@ -140,9 +141,10 @@ async function searchSources(
   const totalCount = data[0]?.total_count ?? 0;
   const sourceIds = data.map((s) => s.id);
 
-  const [topicsBySource, collectionsBySource] = await Promise.all([
+  const [topicsBySource, collectionsBySource, signalsBySource] = await Promise.all([
     loadTopicsBySource(supabase, sourceIds),
     loadCollectionsBySource(supabase, sourceIds),
+    loadSignalsBySource(supabase, sourceIds),
   ]);
 
   return {
@@ -153,6 +155,7 @@ async function searchSources(
       title: s.title,
       summary: s.summary,
       sourceType: s.source_type,
+      signalType: signalsBySource.get(s.id) ?? null,
       ingestStatus: s.ingest_status,
       status: s.status,
       capturedAt: s.captured_at,
@@ -164,6 +167,22 @@ async function searchSources(
       collectionIds: collectionsBySource.get(s.id) ?? [],
     })),
   };
+}
+
+/**
+ * Commercial signal per source. `search_sources` returns a fixed column
+ * list, so this is a follow-up query rather than a change to the RPC.
+ */
+async function loadSignalsBySource(
+  supabase: Supabase,
+  sourceIds: string[],
+): Promise<Map<string, FeedSignal>> {
+  const { data } = await supabase
+    .from('sources')
+    .select('id, signal_type')
+    .in('id', sourceIds)
+    .not('signal_type', 'is', null);
+  return new Map((data ?? []).map((r) => [r.id, r.signal_type as FeedSignal]));
 }
 
 async function loadTopicsBySource(

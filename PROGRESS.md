@@ -18,6 +18,7 @@ Updated by Claude at each milestone. Durable rules and the decisions log live in
 - **Test suite:** 82 Vitest unit tests (`npm test`) and 19 pgTAP database tests (`npm run test:db`).
 - **Feed cleanup:** web searches drop listing pages (category, tag, topic, author, archive, search and section pages, homepages), and stored ones are hidden on `/feed` and the dashboard tile; spinner and error message on "Ingest"; "Papers" labels renamed to "Sources"; dashboard tile renamed "Manual Source Upload".
 - **Feed articles only + signals** (018): web results need a publish date (Jina date field, URL, or a byline date near the top of the page), which is now stored and shown. Each refresh classifies unclassified new/reviewed items with Groq (title + snippet) into a signal type (funding, partnership, acquisition, product launch, offtake/supply, capacity, regulatory, setback, research, market analysis, other) plus a one-line note; `/feed` filters by signal. Refresh reports added / skipped / classified counts.
+- **Signals follow articles into the library** (019): ingesting a feed item copies its signal and note onto the source (classifying it on the spot if the refresh hadn't); shown as a badge on library cards and an editable "Signal" picker plus "What happened" note on the source page. The migration backfills sources already ingested from classified feed items. Directly captured sources start untagged.
 
 ## Next
 
@@ -33,7 +34,6 @@ Updated by Claude at each milestone. Durable rules and the decisions log live in
 - **Groq tier:** the free tier makes a long paper take about 10–12 minutes and has a daily token cap that can stall a big backfill. Stay on it, or upgrade and set `GROQ_TPM_LIMIT`?
 - **Commercial feed:** does the first refresh return results? Jina's handling of `OR` in the deal terms is unverified; if nothing comes back, blank `COMMERCIAL_QUERY_TERMS`.
 - **Undated-page filter is unverified against live Jina:** if a refresh reports many "undated" skips and few new items, Jina Search isn't returning page text or dates in the shape assumed; send the refresh message.
-- **Signals on ingested sources:** signal type lives on feed items only. Carry it onto the source on ingest, or fold it into structured event extraction (Next #1)?
 - **Listing-page filter:** it judges by URL patterns and titles. If a category page still gets through, send the URL so its pattern can be added. A WordPress category nested two levels deep (`/category/a/b/`) is let through on purpose: GEN files real articles at `/topics/<area>/<slug>/`.
 - **Hosting:** which Vercel plan? Several routes set `maxDuration` 300, and free-tier compound extraction runs well past that.
 - **Database tests on your PC:** `npm run test:db` needs Docker Desktop. Install it, or rely on the tests being run in Claude's sessions?

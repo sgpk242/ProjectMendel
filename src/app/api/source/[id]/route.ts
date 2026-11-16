@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 
-import { SOURCE_STATUSES, SOURCE_TYPES } from '@/lib/constants';
+import { FEED_SIGNALS, SOURCE_STATUSES, SOURCE_TYPES, type FeedSignal } from '@/lib/constants';
 import { createClient } from '@/lib/supabase/server';
 import type { TablesUpdate } from '@/lib/types/database';
 
 /**
  * PATCH /api/source/[id] — edit the fields the user controls directly:
- * reading status, source type, interest rating, and their own note. Every
+ * reading status, source type, commercial signal, interest rating, and their
+ * own note. Every
  * quick action on the dashboard and every editable field on the detail page
  * goes through this one handler. RLS ("sources: owner can update") scopes
  * the write to the caller's own row, so a bad id 404s the same way DELETE's
@@ -38,7 +39,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const { status, source_type, interest_rating, user_note } = body as Record<string, unknown>;
+  const { status, source_type, signal_type, interest_rating, user_note } = body as Record<
+    string,
+    unknown
+  >;
   const updates: TablesUpdate<'sources'> = {};
 
   if (status !== undefined) {
@@ -56,6 +60,16 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid source_type' }, { status: 400 });
     }
     updates.source_type = source_type as (typeof SOURCE_TYPES)[number];
+  }
+
+  if (signal_type !== undefined) {
+    if (
+      signal_type !== null &&
+      (typeof signal_type !== 'string' || !(FEED_SIGNALS as readonly string[]).includes(signal_type))
+    ) {
+      return NextResponse.json({ error: 'Invalid signal_type' }, { status: 400 });
+    }
+    updates.signal_type = signal_type as FeedSignal | null;
   }
 
   if (interest_rating !== undefined) {
@@ -89,7 +103,7 @@ export async function PATCH(
     .from('sources')
     .update(updates)
     .eq('id', id)
-    .select('id, status, source_type, interest_rating, user_note')
+    .select('id, status, source_type, signal_type, interest_rating, user_note')
     .maybeSingle();
 
   if (error) {
