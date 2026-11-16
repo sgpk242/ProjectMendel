@@ -121,6 +121,8 @@ collection memberships.
 | `npm run build` | Production build |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm run lint` | ESLint |
+| `npm test` | Vitest unit tests (`src/**/*.test.ts`), offline, no keys needed |
+| `npm run test:db` | pgTAP database tests (`supabase/tests/`) against the local Supabase stack — run `npx supabase start` first (needs Docker Desktop) |
 | `npm run db:push` | Apply migrations to the linked project |
 | `npm run db:types` | Regenerate `src/lib/types/database.ts` |
 | `npm run db:diff` | Diff local schema against the linked project |

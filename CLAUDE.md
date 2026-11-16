@@ -2,6 +2,8 @@
 
 # Mendel
 
+Session-to-session status (done / next / open questions) lives in `PROGRESS.md`; read it at the start of a session.
+
 ## Goal
 
 Mendel is my personal research intelligence app for industrial biomanufacturing. It captures URLs, fully ingests them, and helps me (a) build fluency to speak with industry experts, (b) build conviction on where the industry is heading for my career, and (c) produce commercial insights on biomanufactured products, primarily commercial ingredients, secondarily pharma starting materials, and as a low priority, government-contract manufacturing. The direction as of Nov 2026 is to shift from a library of papers toward tracking commercial signals and recording my own testable theses.
@@ -30,6 +32,13 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - **One-off data fixes** go on `/maintenance` (in the nav) as an authenticated, session-scoped flow: no secret key, preview before writing.
 - **Compound markets:** `product_ideas.market` is industrial / pharma / both (null = untagged). The model only fills untagged rows; a manual tag is never overwritten.
 - **Product-idea ratings:** `interest_rating` null = never rated, 0 = de-listed, 1–5 = rated (only 1–5 show on the radar).
+
+## Testing
+
+- **Before every commit**, in this order: `npm run build` → `npm run typecheck` → `npm run lint` → `npm test`. Build first: it generates the `PageProps` types typecheck needs.
+- **Unit tests** (Vitest, `npm test`; `npm run test:watch` while working): `src/**/*.test.ts`, next to the code they cover. No network and no real keys — mock `fetch` with `vi.stubGlobal` and `groq-sdk` with `vi.mock`.
+- **Database tests** (pgTAP, `npm run test:db`): `supabase/tests/*.test.sql`, run by `supabase test db` against the local Supabase stack (`npx supabase start`, needs Docker Desktop), never the live project. Each file runs in one transaction and rolls back; act as a user with `set local role authenticated` + `set local request.jwt.claims = '{"sub": "..."}'`. Run whenever a migration or RLS policy changes.
+- **What gets a test:** every new pure-logic module, every bug fix (a test that fails without the fix), and every migration that touches RLS or constraints (a case in `supabase/tests/rls.test.sql`).
 
 ## Decisions log
 
@@ -60,23 +69,9 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 | 2026-11-14 | Feed "Commercial" query type: Jina Search restricted to wires and trade press, plus deal terms | Open-web search buried commercial signals |
 | 2026-11-14 | "News (open web)" results exclude the commercial sites | Keep News and Commercial queries from spending results on the same publications |
 | 2026-11-14 | Compounds tagged industrial / pharma / both; radar toggles between them | Commercial ingredients and pharma starting materials are separate markets to track |
-
-## Current status and next steps
-
-**Built:**
-- Phase 0: scaffold, schema, RLS, auth.
-- Phase 1: ingest pipeline, dedup, similarity.
-- Phase 2: dashboard search and filters, quick actions, collections, source detail.
-- Phase 3: funding tracker, product idea radar and product pages, papers feed.
-- Phase 3+: PWA mobile capture, Wikipedia descriptions.
-- Nov 2026: S1 full-text compound extraction (all source types), S2 PubChem normalization with reviewed merges, S3 theses (`/theses`, linking from source pages, suggested related sources). Migrations 011–016.
-- Nov 2026: feed "Commercial" query type (wires and trade press) separate from open-web News; dashboard tile renamed "Web-Scraped Sources for Review"; Industrial / Pharma toggle on the Product Idea Radar.
-
-**Stubbed:** chat (`/api/chat`, `/chat`).
-
-**Pending on the live data:** on `/maintenance`, look up names → review and apply merges → tag industrial / pharma → re-extract legacy sources (in that order). First Commercial feed refresh: if it returns nothing, blank `COMMERCIAL_QUERY_TERMS`.
-
-**Next:** structured event extraction, company newsrooms as commercial sources, scheduled feed refresh, trend view, chat.
+| 2026-11-14 | Junction-table links require owning both sides, on insert and update (`source_product_ideas`, migration 017) | Re-extraction upserts links; without an update policy RLS rejected them |
+| 2026-11-15 | Groq request size derived from `GROQ_TPM_LIMIT` (input + `max_tokens` must fit); split and retry on 413 | Free tier rejects any single request over 8000 tokens; fixed-size batches lost compounds |
+| 2026-11-16 | Vitest unit tests + pgTAP database tests; status moved from CLAUDE.md to `PROGRESS.md` | Guard fixes against regressions; keep CLAUDE.md to durable rules |
 
 ## Working with me
 
@@ -105,6 +100,7 @@ Mendel is my personal research intelligence app for industrial biomanufacturing.
 - The user develops on a Windows PC (terminal, not Mac). Give shell
   instructions in PowerShell/CMD form, not macOS/Homebrew commands.
 
-### Session wrap-up
+### Progress and wrap-up
 
-- At the end of every session, when I say "Update CLAUDE.md with today's decisions and status", append new rows to the decisions log and rewrite the status section. Never delete old decisions.
+- At each milestone (a feature, fix or migration landed, or a question opened or answered), update `PROGRESS.md`: done / next / open questions, plus its "Last updated" date.
+- When I say "Update CLAUDE.md with today's decisions", append rows to the decisions log only. Never delete old decisions, and never put session status in CLAUDE.md.
